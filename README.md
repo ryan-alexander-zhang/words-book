@@ -53,3 +53,4 @@ The database is seeded with the schema from `scripts/init.sql`. Data persists in
 ## Notes
 - Words are stored lowercased to avoid duplicates; adding the same word again is idempotent.
 - The Links column automatically URL-encodes the word when generating external links.
+- UI supports fuzzy search, time sorting (newest/oldest), multi-select delete, clear-all, and import/export (paste comma/line separated words to import, download JSON to export).
