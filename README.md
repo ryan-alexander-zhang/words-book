@@ -83,6 +83,33 @@ The extension lives in `chrome-extension/` and uses:
 - `background.js` (context menu + API call)
 - `options.html` / `options.js` (API base URL settings)
 
+## Raycast extension
+
+This repo also ships a Raycast extension for adding and querying words from the command palette.
+
+### Commands
+- **Add Word**: Add a word to your Words Book.
+- **Search Word**: Search existing words.
+- **Random Words**: List random words (count is configurable).
+
+### Install into Raycast
+1. Install Raycast and its CLI following the official docs.
+2. From the repo root, open the extension folder:
+   ```bash
+   cd raycast-extension
+   ```
+3. Install dependencies:
+   ```bash
+   npm install
+   ```
+4. Start the extension in development mode (this registers it in Raycast):
+   ```bash
+   npm run dev
+   ```
+5. In Raycast, open **Extensions → Words Book → Preferences** and set:
+   - **API Base URL** (defaults to `http://localhost:3000`)
+   - **Random Count** (how many words to list)
+
 ## Notes
 - Words are stored lowercased to avoid duplicates; adding the same word again is idempotent.
 - The Links column automatically URL-encodes the word when generating external links.

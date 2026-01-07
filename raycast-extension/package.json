@@ -1,0 +1,58 @@
+{
+  "name": "words-book-raycast",
+  "title": "Words Book",
+  "description": "Add, search, and list random words from Words Book.",
+  "icon": "icon.png",
+  "author": "Words Book",
+  "license": "MIT",
+  "commands": [
+    {
+      "name": "add-word",
+      "title": "Add Word",
+      "description": "Add a word to Words Book",
+      "mode": "view"
+    },
+    {
+      "name": "search-word",
+      "title": "Search Word",
+      "description": "Search words in Words Book",
+      "mode": "view"
+    },
+    {
+      "name": "random-words",
+      "title": "Random Words",
+      "description": "List random words from Words Book",
+      "mode": "view"
+    }
+  ],
+  "preferences": [
+    {
+      "name": "apiBaseUrl",
+      "title": "API Base URL",
+      "description": "Base URL of the Words Book app (for example http://localhost:3000)",
+      "type": "textfield",
+      "required": true,
+      "default": "http://localhost:3000"
+    },
+    {
+      "name": "randomCount",
+      "title": "Random Count",
+      "description": "How many random words to show",
+      "type": "textfield",
+      "required": true,
+      "default": "5"
+    }
+  ],
+  "dependencies": {
+    "@raycast/api": "^1.76.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.8",
+    "typescript": "^5.5.3"
+  },
+  "scripts": {
+    "build": "ray build",
+    "dev": "ray develop"
+  }
+}
+
