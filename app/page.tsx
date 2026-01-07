@@ -27,7 +27,7 @@ export default async function Home() {
           </p>
         </div>
         <Button asChild variant="outline">
-          <Link href="/cards">随机卡片页</Link>
+          <Link href="/cards">Random cards</Link>
         </Button>
       </header>
 

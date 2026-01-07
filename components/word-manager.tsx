@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { WordForm } from "@/components/word-form";
 import { WordTable } from "@/components/word-table";
 import { Button } from "@/components/ui/button";
@@ -19,10 +19,11 @@ export function WordManager({ initialWords }: WordManagerProps) {
   const [query, setQuery] = useState("");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [importText, setImportText] = useState("");
+  const [importFile, setImportFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pageSize, setPageSize] = useState(20);
   const [currentPage, setCurrentPage] = useState(1);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setWords(initialWords);
@@ -130,27 +131,54 @@ export function WordManager({ initialWords }: WordManagerProps) {
     await refreshWords();
   };
 
-  const parseImportWords = (text: string) => {
-    const items = text
-      .split(/[\n,]+/)
+  const extractNames = (payload: unknown) => {
+    const list = Array.isArray(payload)
+      ? payload
+      : payload && typeof payload === "object" && "words" in payload
+        ? (payload as { words: unknown[] }).words
+        : [];
+    return list
+      .map((item) => {
+        if (typeof item === "string") return item;
+        if (item && typeof item === "object" && "name" in item) {
+          return (item as { name?: string }).name ?? "";
+        }
+        return "";
+      })
       .map((item) => item.trim().toLowerCase())
       .filter(Boolean);
-    return Array.from(new Set(items));
   };
 
   const handleImport = async () => {
     setError(null);
-    const names = parseImportWords(importText);
-    if (names.length === 0) {
-      setError("请输入至少一个单词后再导入。");
+    if (!importFile) {
+      setError("Select a file to import.");
+      return;
+    }
+    let payload: unknown;
+    try {
+      const text = await importFile.text();
+      payload = JSON.parse(text);
+    } catch (importError) {
+      setError(importError instanceof Error ? importError.message : "Unable to read the file.");
+      return;
+    }
+    const names = extractNames(payload);
+    const existing = new Set(words.map((word) => word.name.toLowerCase()));
+    const uniqueNames = Array.from(new Set(names)).filter((name) => !existing.has(name));
+    if (uniqueNames.length === 0) {
+      setError("No new words to import.");
       return;
     }
     await fetch("/api/words", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ names })
+      body: JSON.stringify({ names: uniqueNames })
     });
-    setImportText("");
+    setImportFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
     await refreshWords();
   };
 
@@ -177,52 +205,55 @@ export function WordManager({ initialWords }: WordManagerProps) {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
             <Input
-              placeholder="模糊搜索单词"
+              placeholder="Search words"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               className="sm:w-64"
             />
             <label className="flex items-center gap-2 text-sm text-muted-foreground">
-              时间排序
+              Sort by time
               <select
                 className="h-10 rounded-md border border-input bg-background px-2 text-sm"
                 value={sortOrder}
                 onChange={(event) => setSortOrder(event.target.value as SortOrder)}
               >
-                <option value="desc">最新在前</option>
-                <option value="asc">最早在前</option>
+                <option value="desc">Newest first</option>
+                <option value="asc">Oldest first</option>
               </select>
             </label>
           </div>
 
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={handleExport} disabled={parsedWords.length === 0}>
-              导出
+              Export
             </Button>
-            <Button variant="outline" onClick={handleImport}>
-              导入
+            <Button variant="outline" onClick={handleImport} disabled={!importFile}>
+              Import
             </Button>
             <Button
               variant="outline"
               onClick={handleDeleteSelected}
               disabled={selectedCount === 0}
             >
-              删除已选（{selectedCount}）
+              Delete selected ({selectedCount})
             </Button>
             <Button variant="destructive" onClick={handleClearAll} disabled={words.length === 0}>
-              清空所有
+              Clear all
             </Button>
           </div>
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium">导入文本（逗号或换行分隔）</label>
-          <textarea
-            value={importText}
-            onChange={(event) => setImportText(event.target.value)}
-            className="min-h-[80px] w-full rounded-md border border-input bg-background p-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            placeholder="例如：apple, banana\n或多行输入"
+          <label className="text-sm font-medium">Import from exported JSON</label>
+          <Input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json"
+            onChange={(event) => setImportFile(event.target.files?.[0] ?? null)}
           />
+          <p className="text-xs text-muted-foreground">
+            Choose a JSON file exported from Words Book. Duplicate words will be ignored.
+          </p>
         </div>
 
         {loading && <p className="text-sm text-muted-foreground">Updating...</p>}
@@ -232,10 +263,10 @@ export function WordManager({ initialWords }: WordManagerProps) {
       <div className="flex flex-col gap-2 rounded-lg border p-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">
           <span>
-            共 {parsedWords.length} 个单词，第 {safePage} / {totalPages} 页
+            {parsedWords.length} words total, page {safePage} of {totalPages}
           </span>
           <label className="flex items-center gap-2">
-            每页
+            Per page
             <select
               className="h-9 rounded-md border border-input bg-background px-2 text-sm"
               value={pageSize}
@@ -247,7 +278,7 @@ export function WordManager({ initialWords }: WordManagerProps) {
                 </option>
               ))}
             </select>
-            条
+            items
           </label>
         </div>
         <div className="flex items-center gap-2">
@@ -256,14 +287,14 @@ export function WordManager({ initialWords }: WordManagerProps) {
             onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
             disabled={safePage <= 1}
           >
-            上一页
+            Previous
           </Button>
           <Button
             variant="outline"
             onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
             disabled={safePage >= totalPages}
           >
-            下一页
+            Next
           </Button>
         </div>
       </div>

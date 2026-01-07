@@ -20,7 +20,9 @@ interface WordTableProps {
 export function WordTable({ words, selectedIds, onToggleSelect, onToggleAll, allSelected }: WordTableProps) {
   if (words.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">No words found. Add a new word or 调整筛选条件。</p>
+      <p className="text-sm text-muted-foreground">
+        No words found. Add a new word or adjust the filters.
+      </p>
     );
   }
 
