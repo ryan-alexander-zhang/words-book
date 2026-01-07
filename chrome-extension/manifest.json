@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Words Book Saver",
+  "version": "1.0.0",
+  "description": "Save selected words to Words Book via context menu.",
+  "permissions": ["contextMenus", "storage"],
+  "host_permissions": ["http://*/", "https://*/"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_page": "options.html"
+}
