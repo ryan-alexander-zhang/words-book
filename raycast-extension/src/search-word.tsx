@@ -15,8 +15,8 @@ export default function SearchWord() {
       } catch (error) {
         await showToast({
           style: Toast.Style.Failure,
-          title: "加载失败",
-          message: error instanceof Error ? error.message : "未知错误"
+          title: "Load failed",
+          message: error instanceof Error ? error.message : "Unknown error"
         });
       } finally {
         setIsLoading(false);
@@ -38,7 +38,7 @@ export default function SearchWord() {
     <List
       isLoading={isLoading}
       onSearchTextChange={setSearchText}
-      searchBarPlaceholder="搜索单词"
+      searchBarPlaceholder="Search words"
       throttle
     >
       {filtered.map((word) => (
@@ -49,7 +49,7 @@ export default function SearchWord() {
           icon={Icon.Text}
           actions={
             <ActionPanel>
-              <Action.CopyToClipboard title="复制单词" content={word.name} />
+              <Action.CopyToClipboard title="Copy word" content={word.name} />
             </ActionPanel>
           }
         />
@@ -57,4 +57,3 @@ export default function SearchWord() {
     </List>
   );
 }
-

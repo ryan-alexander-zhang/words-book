@@ -20,13 +20,13 @@ export default async function CardsPage() {
     <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-6 px-4 py-10">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold">随机卡片</h1>
+          <h1 className="text-3xl font-bold">Random cards</h1>
           <p className="text-muted-foreground">
-            设置最大卡片数后，随机抽取不重复的单词展示。
+            Set the maximum cards and get a random, non-repeating selection.
           </p>
         </div>
         <Button asChild variant="outline">
-          <Link href="/">返回单词列表</Link>
+          <Link href="/">Back to word list</Link>
         </Button>
       </header>
 

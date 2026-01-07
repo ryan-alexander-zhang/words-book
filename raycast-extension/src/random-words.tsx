@@ -24,8 +24,8 @@ export default function RandomWords() {
     } catch (error) {
       await showToast({
         style: Toast.Style.Failure,
-        title: "加载失败",
-        message: error instanceof Error ? error.message : "未知错误"
+        title: "Load failed",
+        message: error instanceof Error ? error.message : "Unknown error"
       });
     } finally {
       setIsLoading(false);
@@ -37,7 +37,7 @@ export default function RandomWords() {
   }, [loadWords]);
 
   return (
-    <List isLoading={isLoading} searchBarPlaceholder="随机单词" navigationTitle="随机单词">
+    <List isLoading={isLoading} searchBarPlaceholder="Random words" navigationTitle="Random words">
       {words.map((word) => (
         <List.Item
           key={word.id}
@@ -45,8 +45,8 @@ export default function RandomWords() {
           icon={Icon.Shuffle}
           actions={
             <ActionPanel>
-              <Action title="重新随机" icon={Icon.Repeat} onAction={loadWords} />
-              <Action.CopyToClipboard title="复制单词" content={word.name} />
+              <Action title="Reshuffle" icon={Icon.Repeat} onAction={loadWords} />
+              <Action.CopyToClipboard title="Copy word" content={word.name} />
             </ActionPanel>
           }
         />
@@ -54,11 +54,10 @@ export default function RandomWords() {
       {!isLoading && words.length === 0 ? (
         <List.EmptyView
           icon={Icon.ExclamationMark}
-          title="没有单词"
-          description="请先在 Words Book 中添加单词"
+          title="No words"
+          description="Add words in Words Book first"
         />
       ) : null}
     </List>
   );
 }
-

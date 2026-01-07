@@ -48,9 +48,9 @@ export function WordCardView({ words }: WordCardViewProps) {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 rounded-lg border p-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-3">
-          <span>共 {words.length} 个单词</span>
+          <span>{words.length} words total</span>
           <label className="flex items-center gap-2">
-            最大卡片数
+            Max cards
             <Input
               type="number"
               min={words.length === 0 ? 0 : 1}
@@ -66,12 +66,12 @@ export function WordCardView({ words }: WordCardViewProps) {
           </label>
         </div>
         <Button variant="outline" onClick={handleShuffle} disabled={cappedMax === 0}>
-          换一批
+          Shuffle
         </Button>
       </div>
 
       {selection.length === 0 ? (
-        <p className="text-sm text-muted-foreground">暂无单词可展示，请先添加。</p>
+        <p className="text-sm text-muted-foreground">No words to display yet. Add some first.</p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {selection.map((word) => (
@@ -81,7 +81,7 @@ export function WordCardView({ words }: WordCardViewProps) {
               </CardHeader>
               <CardContent className="space-y-2">
                 <p className="text-xs text-muted-foreground">
-                  添加时间：{new Date(word.createdAt).toLocaleString()}
+                  Added: {new Date(word.createdAt).toLocaleString()}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {WORD_LINKS.map((item) => (

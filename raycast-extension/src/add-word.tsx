@@ -10,7 +10,7 @@ export default function AddWord() {
     if (!trimmed) {
       await showToast({
         style: Toast.Style.Failure,
-        title: "请输入单词"
+        title: "Enter a word"
       });
       return;
     }
@@ -20,13 +20,13 @@ export default function AddWord() {
       await addWord(trimmed);
       await showToast({
         style: Toast.Style.Success,
-        title: "已添加到生词本"
+        title: "Added to Words Book"
       });
     } catch (error) {
       await showToast({
         style: Toast.Style.Failure,
-        title: "添加失败",
-        message: error instanceof Error ? error.message : "未知错误"
+        title: "Add failed",
+        message: error instanceof Error ? error.message : "Unknown error"
       });
     } finally {
       setIsSubmitting(false);
@@ -37,13 +37,12 @@ export default function AddWord() {
     <Form
       actions={
         <ActionPanel>
-          <Action.SubmitForm title="添加" onSubmit={handleSubmit} />
+          <Action.SubmitForm title="Add" onSubmit={handleSubmit} />
         </ActionPanel>
       }
       isLoading={isSubmitting}
     >
-      <Form.TextField id="word" title="单词" placeholder="输入单词" />
+      <Form.TextField id="word" title="Word" placeholder="Enter a word" />
     </Form>
   );
 }
-
