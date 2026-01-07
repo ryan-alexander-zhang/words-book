@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { WordManager } from "@/components/word-manager";
+import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { type WordItem } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -17,11 +19,16 @@ export default async function Home() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-6 px-4 py-10">
-      <header className="space-y-2">
-        <h1 className="text-3xl font-bold">Words Book</h1>
-        <p className="text-muted-foreground">
-          Add words once and jump to your favorite references with a single click.
-        </p>
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold">Words Book</h1>
+          <p className="text-muted-foreground">
+            Add words once and jump to your favorite references with a single click.
+          </p>
+        </div>
+        <Button asChild variant="outline">
+          <Link href="/cards">随机卡片页</Link>
+        </Button>
       </header>
 
       <Card>

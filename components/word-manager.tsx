@@ -21,10 +21,13 @@ export function WordManager({ initialWords }: WordManagerProps) {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [importText, setImportText] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [pageSize, setPageSize] = useState(20);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     setWords(initialWords);
     setSelectedIds(new Set());
+    setCurrentPage(1);
   }, [initialWords]);
 
   const normalizeWords = (list: WordItem[]) =>
@@ -67,6 +70,23 @@ export function WordManager({ initialWords }: WordManagerProps) {
     });
     return sorted;
   }, [words, query, sortOrder]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [query, sortOrder, pageSize, words.length]);
+
+  const totalPages = Math.max(1, Math.ceil(parsedWords.length / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const pagedWords = useMemo(() => {
+    const start = (safePage - 1) * pageSize;
+    return parsedWords.slice(start, start + pageSize);
+  }, [parsedWords, pageSize, safePage]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const toggleSelect = (id: number) => {
     setSelectedIds((prev) => {
@@ -209,8 +229,47 @@ export function WordManager({ initialWords }: WordManagerProps) {
         {error && <p className="text-sm text-destructive">{error}</p>}
       </div>
 
+      <div className="flex flex-col gap-2 rounded-lg border p-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-2">
+          <span>
+            共 {parsedWords.length} 个单词，第 {safePage} / {totalPages} 页
+          </span>
+          <label className="flex items-center gap-2">
+            每页
+            <select
+              className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+              value={pageSize}
+              onChange={(event) => setPageSize(Number(event.target.value))}
+            >
+              {[10, 20, 30, 50, 100].map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+            条
+          </label>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+            disabled={safePage <= 1}
+          >
+            上一页
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+            disabled={safePage >= totalPages}
+          >
+            下一页
+          </Button>
+        </div>
+      </div>
+
       <WordTable
-        words={parsedWords}
+        words={pagedWords}
         selectedIds={selectedIds}
         onToggleSelect={toggleSelect}
         onToggleAll={toggleSelectAll}
