@@ -9,3 +9,5 @@ pnpm-debug.log*
 coverage
 .prisma
 package-lock.json
+next-env.d.ts
+raycast-extension/raycast-env.d.ts
