@@ -26,9 +26,17 @@ export default async function Home() {
             Add words once and jump to your favorite references with a single click.
           </p>
         </div>
-        <Button asChild variant="outline">
-          <Link href="/cards">Random cards</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline">
+            <Link href="/phrases">Phrases</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/sentences">Sentences</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/cards">Random cards</Link>
+          </Button>
+        </div>
       </header>
 
       <Card>
