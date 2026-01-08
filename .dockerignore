@@ -11,3 +11,10 @@ pnpm-debug.log*
 .env
 .env.*
 
+# ignore raycast extension
+raycast-extension/
+**/raycast-extension/
+
+# ignore chrome extension
+chrome-extension/
+**/chrome-extension/
