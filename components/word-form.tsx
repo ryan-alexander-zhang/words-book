@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Plus } from "lucide-react";
 
 interface WordFormProps {
   onAdd: (name: string) => Promise<void>;
@@ -41,8 +42,8 @@ export function WordForm({ onAdd }: WordFormProps) {
           minLength={1}
         />
       </div>
-      <Button type="submit" disabled={loading} className="sm:w-32">
-        {loading ? "Saving..." : "Add Word"}
+      <Button type="submit" disabled={loading} className="sm:w-12" aria-label="Add word">
+        {loading ? "Saving..." : <Plus className="h-4 w-4" aria-hidden="true" />}
       </Button>
       {error && <p className="text-sm text-destructive">{error}</p>}
     </form>
