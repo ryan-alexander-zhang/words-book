@@ -6,12 +6,19 @@ import { Input } from "@/components/ui/input";
 
 interface TextFormProps {
   placeholder: string;
+  annotationPlaceholder: string;
   buttonLabel: string;
-  onAdd: (content: string) => Promise<void>;
+  onAdd: (content: string, annotation: string) => Promise<void>;
 }
 
-export function TextForm({ placeholder, buttonLabel, onAdd }: TextFormProps) {
+export function TextForm({
+  placeholder,
+  annotationPlaceholder,
+  buttonLabel,
+  onAdd
+}: TextFormProps) {
   const [value, setValue] = useState("");
+  const [annotation, setAnnotation] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,8 +28,9 @@ export function TextForm({ placeholder, buttonLabel, onAdd }: TextFormProps) {
     setError(null);
     setLoading(true);
     try {
-      await onAdd(value.trim());
+      await onAdd(value.trim(), annotation.trim());
       setValue("");
+      setAnnotation("");
     } catch {
       setError("Failed to add item. Please try again.");
     } finally {
@@ -37,6 +45,11 @@ export function TextForm({ placeholder, buttonLabel, onAdd }: TextFormProps) {
           placeholder={placeholder}
           value={value}
           onChange={(event) => setValue(event.target.value)}
+        />
+        <Input
+          placeholder={annotationPlaceholder}
+          value={annotation}
+          onChange={(event) => setAnnotation(event.target.value)}
         />
         <Button type="submit" disabled={loading}>
           {loading ? "Saving..." : buttonLabel}

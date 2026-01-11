@@ -7,5 +7,6 @@ export type WordItem = {
 export type TextItem = {
   id: number;
   content: string;
+  annotation: string;
   createdAt: string;
 };

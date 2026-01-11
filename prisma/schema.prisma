@@ -14,13 +14,15 @@ model Word {
 }
 
 model Phrase {
-  id        Int      @id @default(autoincrement())
-  content   String   @unique
-  createdAt DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  content    String   @unique
+  annotation String   @default("")
+  createdAt  DateTime @default(now())
 }
 
 model Sentence {
-  id        Int      @id @default(autoincrement())
-  content   String   @unique
-  createdAt DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  content    String   @unique
+  annotation String   @default("")
+  createdAt  DateTime @default(now())
 }
