@@ -6,6 +6,7 @@ import { WordTable } from "@/components/word-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { type WordItem } from "@/lib/types";
+import { Download, Upload } from "lucide-react";
 
 interface WordManagerProps {
   initialWords: WordItem[];
@@ -19,7 +20,6 @@ export function WordManager({ initialWords }: WordManagerProps) {
   const [query, setQuery] = useState("");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [importFile, setImportFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pageSize, setPageSize] = useState(20);
   const [currentPage, setCurrentPage] = useState(1);
@@ -149,15 +149,11 @@ export function WordManager({ initialWords }: WordManagerProps) {
       .filter(Boolean);
   };
 
-  const handleImport = async () => {
+  const handleImport = async (file: File) => {
     setError(null);
-    if (!importFile) {
-      setError("Select a file to import.");
-      return;
-    }
     let payload: unknown;
     try {
-      const text = await importFile.text();
+      const text = await file.text();
       payload = JSON.parse(text);
     } catch (importError) {
       setError(importError instanceof Error ? importError.message : "Unable to read the file.");
@@ -175,11 +171,15 @@ export function WordManager({ initialWords }: WordManagerProps) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ names: uniqueNames })
     });
-    setImportFile(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
     await refreshWords();
+  };
+
+  const handleImportClick = () => {
+    setError(null);
+    fileInputRef.current?.click();
   };
 
   const handleExport = () => {
@@ -225,10 +225,12 @@ export function WordManager({ initialWords }: WordManagerProps) {
 
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={handleExport} disabled={parsedWords.length === 0}>
-              Export
+              <Download className="h-4 w-4" aria-hidden="true" />
+              <span className="sr-only">Export</span>
             </Button>
-            <Button variant="outline" onClick={handleImport} disabled={!importFile}>
-              Import
+            <Button variant="outline" onClick={handleImportClick}>
+              <Upload className="h-4 w-4" aria-hidden="true" />
+              <span className="sr-only">Import</span>
             </Button>
             <Button
               variant="outline"
@@ -243,18 +245,17 @@ export function WordManager({ initialWords }: WordManagerProps) {
           </div>
         </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Import from exported JSON</label>
-          <Input
-            ref={fileInputRef}
-            type="file"
-            accept="application/json"
-            onChange={(event) => setImportFile(event.target.files?.[0] ?? null)}
-          />
-          <p className="text-xs text-muted-foreground">
-            Choose a JSON file exported from Words Book. Duplicate words will be ignored.
-          </p>
-        </div>
+        <Input
+          ref={fileInputRef}
+          type="file"
+          accept="application/json"
+          className="hidden"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            void handleImport(file);
+          }}
+        />
 
         {loading && <p className="text-sm text-muted-foreground">Updating...</p>}
         {error && <p className="text-sm text-destructive">{error}</p>}
