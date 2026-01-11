@@ -67,6 +67,9 @@ export function TextCardView({ items, label }: TextCardViewProps) {
                 <CardTitle className="text-lg">{item.content}</CardTitle>
               </CardHeader>
               <CardContent>
+                {item.annotation ? (
+                  <p className="text-sm text-muted-foreground">{item.annotation}</p>
+                ) : null}
                 <p className="text-xs text-muted-foreground">
                   Added: {new Date(item.createdAt).toLocaleString()}
                 </p>

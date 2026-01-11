@@ -19,7 +19,7 @@ interface TextTableProps {
   allSelected: boolean;
   onToggleSelect: (id: number) => void;
   onToggleAll: (checked: boolean) => void;
-  onUpdate: (id: number, content: string) => Promise<boolean>;
+  onUpdate: (id: number, content: string, annotation: string) => Promise<boolean>;
   emptyMessage: string;
 }
 
@@ -33,7 +33,8 @@ export function TextTable({
   emptyMessage
 }: TextTableProps) {
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [draft, setDraft] = useState("");
+  const [draftContent, setDraftContent] = useState("");
+  const [draftAnnotation, setDraftAnnotation] = useState("");
   const [savingId, setSavingId] = useState<number | null>(null);
 
   if (items.length === 0) {
@@ -42,23 +43,29 @@ export function TextTable({
 
   const startEdit = (item: TextItem) => {
     setEditingId(item.id);
-    setDraft(item.content);
+    setDraftContent(item.content);
+    setDraftAnnotation(item.annotation);
   };
 
   const cancelEdit = () => {
     setEditingId(null);
-    setDraft("");
+    setDraftContent("");
+    setDraftAnnotation("");
   };
 
   const handleSave = async (item: TextItem) => {
     if (savingId) return;
-    const trimmed = draft.trim();
-    if (!trimmed || trimmed === item.content) {
+    const trimmedContent = draftContent.trim();
+    const trimmedAnnotation = draftAnnotation.trim();
+    if (
+      !trimmedContent ||
+      (trimmedContent === item.content && trimmedAnnotation === item.annotation)
+    ) {
       cancelEdit();
       return;
     }
     setSavingId(item.id);
-    const success = await onUpdate(item.id, trimmed);
+    const success = await onUpdate(item.id, trimmedContent, trimmedAnnotation);
     setSavingId(null);
     if (success) {
       cancelEdit();
@@ -79,6 +86,7 @@ export function TextTable({
               />
             </TableHead>
             <TableHead>Text</TableHead>
+            <TableHead>Annotation</TableHead>
             <TableHead className="w-48">Added</TableHead>
             <TableHead className="w-56">Actions</TableHead>
           </TableRow>
@@ -99,8 +107,8 @@ export function TextTable({
                 <TableCell className="font-medium">
                   {isEditing ? (
                     <Input
-                      value={draft}
-                      onChange={(event) => setDraft(event.target.value)}
+                      value={draftContent}
+                      onChange={(event) => setDraftContent(event.target.value)}
                       onKeyDown={(event) => {
                         if (event.key === "Enter") {
                           event.preventDefault();
@@ -114,6 +122,28 @@ export function TextTable({
                     />
                   ) : (
                     item.content
+                  )}
+                </TableCell>
+                <TableCell>
+                  {isEditing ? (
+                    <Input
+                      value={draftAnnotation}
+                      onChange={(event) => setDraftAnnotation(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          void handleSave(item);
+                        }
+                        if (event.key === "Escape") {
+                          event.preventDefault();
+                          cancelEdit();
+                        }
+                      }}
+                    />
+                  ) : item.annotation ? (
+                    item.annotation
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
                   )}
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">

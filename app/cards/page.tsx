@@ -1,8 +1,7 @@
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { type WordItem } from "@/lib/types";
 import { WordCardView } from "@/components/word-card-view";
-import { Button } from "@/components/ui/button";
+import { SectionNav } from "@/components/section-nav";
 
 export const dynamic = "force-dynamic";
 
@@ -25,17 +24,7 @@ export default async function CardsPage() {
             Set the maximum cards and get a random, non-repeating selection.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button asChild variant="outline">
-            <Link href="/">Back to words</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/phrases">Phrases</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/sentences">Sentences</Link>
-          </Button>
-        </div>
+        <SectionNav currentHref="/cards" cardsHref="/cards" />
       </header>
 
       <WordCardView words={serialized} />

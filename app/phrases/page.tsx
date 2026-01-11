@@ -1,9 +1,8 @@
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { TextManager } from "@/components/text-manager";
 import { type TextItem } from "@/lib/types";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionNav } from "@/components/section-nav";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +13,7 @@ export default async function PhrasesPage() {
   const serialized: TextItem[] = phrases.map((phrase) => ({
     id: phrase.id,
     content: phrase.content,
+    annotation: phrase.annotation,
     createdAt: phrase.createdAt.toISOString()
   }));
 
@@ -24,17 +24,7 @@ export default async function PhrasesPage() {
           <h1 className="text-3xl font-bold">Phrases</h1>
           <p className="text-muted-foreground">Collect short expressions you want to remember.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button asChild variant="outline">
-            <Link href="/">Words</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/sentences">Sentences</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/phrases/cards">Random cards</Link>
-          </Button>
-        </div>
+        <SectionNav currentHref="/phrases" cardsHref="/phrases/cards" />
       </header>
 
       <Card>
@@ -51,6 +41,7 @@ export default async function PhrasesPage() {
             singularLabel="Phrase"
             pluralLabel="Phrases"
             placeholder="Enter a new phrase"
+            annotationPlaceholder="Add an annotation (optional)"
             exportFileName="phrases-book.json"
           />
         </CardContent>

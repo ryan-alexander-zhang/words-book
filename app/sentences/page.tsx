@@ -1,9 +1,8 @@
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { TextManager } from "@/components/text-manager";
 import { type TextItem } from "@/lib/types";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionNav } from "@/components/section-nav";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +13,7 @@ export default async function SentencesPage() {
   const serialized: TextItem[] = sentences.map((sentence) => ({
     id: sentence.id,
     content: sentence.content,
+    annotation: sentence.annotation,
     createdAt: sentence.createdAt.toISOString()
   }));
 
@@ -24,17 +24,7 @@ export default async function SentencesPage() {
           <h1 className="text-3xl font-bold">Sentences</h1>
           <p className="text-muted-foreground">Save full sentences for later review.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button asChild variant="outline">
-            <Link href="/">Words</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/phrases">Phrases</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/sentences/cards">Random cards</Link>
-          </Button>
-        </div>
+        <SectionNav currentHref="/sentences" cardsHref="/sentences/cards" />
       </header>
 
       <Card>
@@ -51,6 +41,7 @@ export default async function SentencesPage() {
             singularLabel="Sentence"
             pluralLabel="Sentences"
             placeholder="Enter a new sentence"
+            annotationPlaceholder="Add an annotation (optional)"
             exportFileName="sentences-book.json"
           />
         </CardContent>

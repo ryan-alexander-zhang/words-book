@@ -14,6 +14,7 @@ interface TextManagerProps {
   singularLabel: string;
   pluralLabel: string;
   placeholder: string;
+  annotationPlaceholder: string;
   exportFileName: string;
 }
 
@@ -25,6 +26,7 @@ export function TextManager({
   singularLabel,
   pluralLabel,
   placeholder,
+  annotationPlaceholder,
   exportFileName
 }: TextManagerProps) {
   const [items, setItems] = useState<TextItem[]>(initialItems);
@@ -61,17 +63,17 @@ export function TextManager({
     }
   };
 
-  const handleAdd = async (content: string) => {
+  const handleAdd = async (content: string, annotation: string) => {
     setError(null);
     await fetch(apiPath, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content })
+      body: JSON.stringify({ content, annotation })
     });
     await refreshItems();
   };
 
-  const handleUpdate = async (id: number, content: string) => {
+  const handleUpdate = async (id: number, content: string, annotation: string) => {
     if (!content.trim()) {
       setError(`${singularLabel} text is required.`);
       return false;
@@ -80,7 +82,7 @@ export function TextManager({
     const response = await fetch(apiPath, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, content })
+      body: JSON.stringify({ id, content, annotation })
     });
     if (!response.ok) {
       const payload = await response.json().catch(() => null);
@@ -93,9 +95,11 @@ export function TextManager({
 
   const parsedItems = useMemo(() => {
     const trimmedQuery = query.trim().toLowerCase();
-    const filtered = items.filter((item) =>
-      item.content.toLowerCase().includes(trimmedQuery)
-    );
+    const filtered = items.filter((item) => {
+      const contentMatch = item.content.toLowerCase().includes(trimmedQuery);
+      const annotationMatch = item.annotation.toLowerCase().includes(trimmedQuery);
+      return contentMatch || annotationMatch;
+    });
     const sorted = [...filtered].sort((a, b) => {
       const first = new Date(a.createdAt).getTime();
       const second = new Date(b.createdAt).getTime();
@@ -163,7 +167,7 @@ export function TextManager({
     await refreshItems();
   };
 
-  const extractContents = (payload: unknown) => {
+  const extractItems = (payload: unknown) => {
     const list = Array.isArray(payload)
       ? payload
       : payload && typeof payload === "object" && "items" in payload
@@ -171,14 +175,23 @@ export function TextManager({
         : [];
     return list
       .map((item) => {
-        if (typeof item === "string") return item;
-        if (item && typeof item === "object" && "content" in item) {
-          return (item as { content?: string }).content ?? "";
+        if (typeof item === "string") {
+          return { content: item, annotation: "" };
         }
-        return "";
+        if (item && typeof item === "object" && "content" in item) {
+          const record = item as { content?: string; annotation?: string };
+          return {
+            content: record.content ?? "",
+            annotation: record.annotation ?? ""
+          };
+        }
+        return { content: "", annotation: "" };
       })
-      .map((item) => item.trim())
-      .filter(Boolean);
+      .map((item) => ({
+        content: item.content.trim(),
+        annotation: item.annotation.trim()
+      }))
+      .filter((item) => item.content);
   };
 
   const handleImport = async (file: File) => {
@@ -191,19 +204,22 @@ export function TextManager({
       setError(importError instanceof Error ? importError.message : "Unable to read the file.");
       return;
     }
-    const contents = extractContents(payload);
+    const extracted = extractItems(payload);
     const existing = new Set(items.map((item) => item.content.toLowerCase()));
-    const uniqueContents = Array.from(new Set(contents)).filter(
-      (content) => !existing.has(content.toLowerCase())
+    const uniqueItems = extracted.filter(
+      (item, index, self) =>
+        index ===
+          self.findIndex((candidate) => candidate.content === item.content) &&
+        !existing.has(item.content.toLowerCase())
     );
-    if (uniqueContents.length === 0) {
+    if (uniqueItems.length === 0) {
       setError(`No new ${pluralLabel.toLowerCase()} to import.`);
       return;
     }
     await fetch(apiPath, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contents: uniqueContents })
+      body: JSON.stringify({ items: uniqueItems })
     });
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -235,6 +251,7 @@ export function TextManager({
     <div className="space-y-4">
       <TextForm
         placeholder={placeholder}
+        annotationPlaceholder={annotationPlaceholder}
         buttonLabel={`Add ${singularLabel}`}
         onAdd={handleAdd}
       />

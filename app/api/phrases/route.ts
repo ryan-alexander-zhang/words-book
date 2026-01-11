@@ -10,39 +10,57 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const contents: string[] = Array.isArray(body?.contents)
-    ? body.contents
-    : typeof body?.content === "string"
-      ? [body.content]
-      : [];
-  const cleaned = Array.from(
-    new Set(
-      contents
-        .map((value) => value.trim())
-        .filter(Boolean)
-    )
+  const incomingItems: { content: string; annotation: string }[] = Array.isArray(body?.items)
+    ? body.items
+        .filter((item: unknown) => item && typeof item === "object")
+        .map((item: { content?: string; annotation?: string }) => ({
+          content: item.content ?? "",
+          annotation: item.annotation ?? ""
+        }))
+    : Array.isArray(body?.contents)
+      ? body.contents.map((content: string) => ({ content, annotation: "" }))
+      : typeof body?.content === "string"
+        ? [
+            {
+              content: body.content,
+              annotation: typeof body?.annotation === "string" ? body.annotation : ""
+            }
+          ]
+        : [];
+  const cleaned = incomingItems
+    .map((item) => ({
+      content: item.content.trim(),
+      annotation: item.annotation.trim()
+    }))
+    .filter((item) => item.content);
+  const unique = Array.from(
+    new Map(cleaned.map((item) => [item.content, item])).values()
   );
 
-  if (cleaned.length === 0) {
+  if (unique.length === 0) {
     return NextResponse.json({ error: "Content is required" }, { status: 400 });
   }
 
   await prisma.phrase.createMany({
-    data: cleaned.map((content) => ({ content })),
+    data: unique.map((item) => ({
+      content: item.content,
+      annotation: item.annotation
+    })),
     skipDuplicates: true
   });
 
-  const items = await prisma.phrase.findMany({
+  const refreshedItems = await prisma.phrase.findMany({
     orderBy: { createdAt: "desc" }
   });
 
-  return NextResponse.json({ items });
+  return NextResponse.json({ items: refreshedItems });
 }
 
 export async function PATCH(request: Request) {
   const body = await request.json();
   const id = typeof body?.id === "number" ? body.id : null;
   const content = typeof body?.content === "string" ? body.content.trim() : "";
+  const annotation = typeof body?.annotation === "string" ? body.annotation.trim() : "";
 
   if (!id || !content) {
     return NextResponse.json({ error: "Id and content are required" }, { status: 400 });
@@ -50,7 +68,7 @@ export async function PATCH(request: Request) {
 
   await prisma.phrase.update({
     where: { id },
-    data: { content }
+    data: { content, annotation }
   });
 
   const items = await prisma.phrase.findMany({

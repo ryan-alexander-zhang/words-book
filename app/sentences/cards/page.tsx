@@ -1,8 +1,7 @@
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { type TextItem } from "@/lib/types";
 import { TextCardView } from "@/components/text-card-view";
-import { Button } from "@/components/ui/button";
+import { SectionNav } from "@/components/section-nav";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +12,7 @@ export default async function SentenceCardsPage() {
   const serialized: TextItem[] = sentences.map((sentence) => ({
     id: sentence.id,
     content: sentence.content,
+    annotation: sentence.annotation,
     createdAt: sentence.createdAt.toISOString()
   }));
 
@@ -25,17 +25,7 @@ export default async function SentenceCardsPage() {
             Set the maximum cards and get a random, non-repeating selection.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button asChild variant="outline">
-            <Link href="/sentences">Back to sentences</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/">Words</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/phrases">Phrases</Link>
-          </Button>
-        </div>
+        <SectionNav currentHref="/sentences/cards" cardsHref="/sentences/cards" />
       </header>
 
       <TextCardView items={serialized} label="sentences" />
