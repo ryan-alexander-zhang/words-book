@@ -10,7 +10,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const items: { content: string; annotation: string }[] = Array.isArray(body?.items)
+  const incomingItems: { content: string; annotation: string }[] = Array.isArray(body?.items)
     ? body.items
         .filter((item: unknown) => item && typeof item === "object")
         .map((item: { content?: string; annotation?: string }) => ({
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
             }
           ]
         : [];
-  const cleaned = items
+  const cleaned = incomingItems
     .map((item) => ({
       content: item.content.trim(),
       annotation: item.annotation.trim()
@@ -49,11 +49,11 @@ export async function POST(request: Request) {
     skipDuplicates: true
   });
 
-  const items = await prisma.sentence.findMany({
+  const refreshedItems = await prisma.sentence.findMany({
     orderBy: { createdAt: "desc" }
   });
 
-  return NextResponse.json({ items });
+  return NextResponse.json({ items: refreshedItems });
 }
 
 export async function PATCH(request: Request) {
