@@ -182,6 +182,18 @@ export function WordManager({ initialWords }: WordManagerProps) {
     fileInputRef.current?.click();
   };
 
+  const formatExportTimestamp = (date: Date) => {
+    const pad = (value: number) => value.toString().padStart(2, "0");
+    return [
+      date.getFullYear(),
+      pad(date.getMonth() + 1),
+      pad(date.getDate()),
+      pad(date.getHours()),
+      pad(date.getMinutes()),
+      pad(date.getSeconds())
+    ].join("-");
+  };
+
   const handleExport = () => {
     const blob = new Blob([JSON.stringify(parsedWords, null, 2)], {
       type: "application/json"
@@ -189,7 +201,7 @@ export function WordManager({ initialWords }: WordManagerProps) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "words-book.json";
+    link.download = `words-${formatExportTimestamp(new Date())}.json`;
     link.click();
     URL.revokeObjectURL(url);
   };
