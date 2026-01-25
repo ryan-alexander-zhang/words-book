@@ -1,0 +1,47 @@
+[
+  {
+    "id": 19,
+    "name": "takeaway",
+    "createdAt": "2026-01-14T12:48:18.468Z"
+  },
+  {
+    "id": 11,
+    "name": "analogy",
+    "createdAt": "2026-01-14T12:48:05.072Z"
+  },
+  {
+    "id": 12,
+    "name": "delegate",
+    "createdAt": "2026-01-14T12:48:05.072Z"
+  },
+  {
+    "id": 13,
+    "name": "fundamental",
+    "createdAt": "2026-01-14T12:48:05.072Z"
+  },
+  {
+    "id": 10,
+    "name": "explicit",
+    "createdAt": "2026-01-14T12:48:05.072Z"
+  },
+  {
+    "id": 15,
+    "name": "hybrid",
+    "createdAt": "2026-01-14T12:48:05.072Z"
+  },
+  {
+    "id": 16,
+    "name": "catchy",
+    "createdAt": "2026-01-14T12:48:05.072Z"
+  },
+  {
+    "id": 18,
+    "name": "concise",
+    "createdAt": "2026-01-14T12:48:05.072Z"
+  },
+  {
+    "id": 14,
+    "name": "critic",
+    "createdAt": "2026-01-14T12:48:05.072Z"
+  }
+]
