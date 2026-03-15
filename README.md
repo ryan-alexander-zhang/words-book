@@ -294,7 +294,7 @@ Set the token in Raycast preferences after creating it in the web app settings p
 `docker compose up --build` now starts the database first, then the web container runs `prisma migrate deploy` before `next start`.
 
 - `.env.docker` contains placeholders.
-- Replace `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` before relying on the Dockerized web service.
+- Replace `AUTH_SECRET`, `AUTH_GOOGLE_ID`, and `AUTH_GOOGLE_SECRET` before relying on the Dockerized web service.
 - Fresh containers create tables through Prisma migrations at runtime.
 
 For day-to-day development, `docker compose up -d db` plus `npm run dev` is still the simpler path.
