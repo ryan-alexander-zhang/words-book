@@ -1,6 +1,6 @@
 # Words Book
 
-A small Next.js + PostgreSQL app to collect vocabulary and jump to reference sites (Vocabulary.com, YouGlish, Dictionary.com, Youdao, Collins) with one click. UI is built with shadcn/ui components.
+A focused Next.js + PostgreSQL vocabulary desk for collecting words, rotating through a small card deck, and practicing pronunciation inline with the embedded YouGlish widget.
 
 ## Stack
 - Next.js 14 / React 18
@@ -112,5 +112,7 @@ This repo also ships a Raycast extension for adding and querying words from the 
 
 ## Notes
 - Words are stored lowercased to avoid duplicates; adding the same word again is idempotent.
-- The Links column automatically URL-encodes the word when generating external links.
-- UI supports fuzzy search, time sorting (newest/oldest), multi-select delete, clear-all, and import/export (paste comma/line separated words to import, download JSON to export).
+- Pronunciation is embedded directly in the main workspace through the YouGlish JavaScript API.
+- The reference shelf automatically URL-encodes each word when generating external links.
+- UI supports search, deck rotation, time sorting (newest/oldest), multi-select delete, clear-all, and import/export with JSON files.
+- If you are upgrading an older database, run `npx prisma db push --accept-data-loss` once to align the schema.

@@ -3,10 +3,3 @@ export type WordItem = {
   name: string;
   createdAt: string;
 };
-
-export type TextItem = {
-  id: number;
-  content: string;
-  annotation: string;
-  createdAt: string;
-};

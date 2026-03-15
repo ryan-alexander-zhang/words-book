@@ -4,15 +4,11 @@ const MENU_ADD_ID = "words-book-add";
 const LINK_PREFIX = "words-book-link-";
 const WORD_LINKS = [
   {
-    label: "Vocabulary",
+    label: "Vocabulary.com",
     href: "https://www.vocabulary.com/dictionary/{name}"
   },
   {
-    label: "Pronounce",
-    href: "https://youglish.com/pronounce/{name}/english"
-  },
-  {
-    label: "Dictionary",
+    label: "Dictionary.com",
     href: "https://www.dictionary.com/browse/{name}"
   },
   {

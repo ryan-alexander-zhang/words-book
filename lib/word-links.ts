@@ -5,15 +5,11 @@ export type WordLink = {
 
 export const WORD_LINKS: WordLink[] = [
   {
-    label: "Vocabulary",
+    label: "Vocabulary.com",
     href: "https://www.vocabulary.com/dictionary/{name}"
   },
   {
-    label: "Pronounce",
-    href: "https://youglish.com/pronounce/{name}/english"
-  },
-  {
-    label: "Dictionary",
+    label: "Dictionary.com",
     href: "https://www.dictionary.com/browse/{name}"
   },
   {

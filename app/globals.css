@@ -3,41 +3,158 @@
 @tailwind utilities;
 
 :root {
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
+  --background: 35 60% 96%;
+  --foreground: 203 37% 15%;
 
   --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
+  --card-foreground: 203 37% 15%;
 
   --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
+  --popover-foreground: 203 37% 15%;
 
-  --primary: 222.2 47.4% 11.2%;
-  --primary-foreground: 210 40% 98%;
+  --primary: 196 50% 20%;
+  --primary-foreground: 36 100% 98%;
 
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
+  --secondary: 33 46% 91%;
+  --secondary-foreground: 203 37% 15%;
 
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
+  --muted: 34 31% 92%;
+  --muted-foreground: 201 18% 38%;
 
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
+  --accent: 15 82% 58%;
+  --accent-foreground: 36 100% 98%;
 
-  --destructive: 0 84.2% 60.2%;
+  --destructive: 0 74% 54%;
   --destructive-foreground: 210 40% 98%;
 
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 222.2 84% 4.9%;
+  --border: 28 33% 82%;
+  --input: 28 33% 85%;
+  --ring: 15 82% 58%;
 
-  --radius: 0.75rem;
+  --radius: 1.5rem;
 }
 
 * {
   @apply border-border;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
-  @apply bg-background text-foreground antialiased;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.95), transparent 28%),
+    radial-gradient(circle at top right, rgba(255, 154, 103, 0.22), transparent 26%),
+    linear-gradient(180deg, hsl(var(--background)), hsl(39 65% 92%));
+  color: hsl(var(--foreground));
+  font-family: var(--font-body), sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.55;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.18) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: radial-gradient(circle at center, black 55%, transparent 92%);
+}
+
+a {
+  color: inherit;
+}
+
+.page-shell {
+  @apply mx-auto min-h-screen w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10;
+}
+
+.display-font {
+  font-family: var(--font-display), serif;
+}
+
+.study-panel {
+  @apply relative overflow-hidden rounded-[30px] border bg-card/80 text-card-foreground shadow-[0_24px_80px_-40px_rgba(54,39,24,0.42)] backdrop-blur;
+}
+
+.study-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.55), transparent 45%);
+  opacity: 0.8;
+}
+
+.hero-kicker {
+  @apply inline-flex items-center gap-2 rounded-full border border-border/80 bg-white/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground;
+}
+
+.workbench-header {
+  @apply grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(340px,400px)] xl:items-start;
+}
+
+.workbench-heading {
+  @apply max-w-3xl space-y-3;
+}
+
+.workbench-stats {
+  @apply grid gap-3 sm:grid-cols-3;
+}
+
+.workbench-console {
+  @apply rounded-[28px] border border-border/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.84),rgba(246,239,231,0.8))] p-4 shadow-[0_16px_34px_-24px_rgba(54,39,24,0.32)] sm:p-5;
+}
+
+.control-field {
+  @apply space-y-2;
+}
+
+.control-label {
+  @apply block text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground;
+}
+
+.control-select {
+  @apply flex h-12 w-full rounded-full border border-input bg-white/80 px-4 text-sm text-foreground shadow-[0_12px_28px_-24px_rgba(54,39,24,0.6)] outline-none transition focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+}
+
+.workbench-actions-row {
+  @apply mt-4 space-y-3 border-t border-border/60 pt-4;
+}
+
+.workbench-note {
+  @apply text-sm leading-6 text-muted-foreground;
+}
+
+.stat-chip {
+  @apply flex h-full min-h-[132px] flex-col justify-between rounded-[24px] border border-border/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(247,240,232,0.82))] p-4 shadow-[0_16px_30px_-24px_rgba(54,39,24,0.35)];
+}
+
+.word-card {
+  animation: desk-float var(--drift-duration, 14s) ease-in-out infinite;
+  animation-delay: var(--card-delay, 0s);
+  transform: rotate(var(--card-rotate, 0deg));
+}
+
+.word-card:hover {
+  animation-play-state: paused;
+}
+
+.widget-shell iframe {
+  border-radius: 24px;
+}
+
+@keyframes desk-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(var(--card-rotate, 0deg));
+  }
+  50% {
+    transform: translate3d(0, -6px, 0) rotate(var(--card-rotate, 0deg));
+  }
 }
