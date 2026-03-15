@@ -9,12 +9,11 @@ import { cn } from "@/lib/utils";
 
 type TokenSettingsProps = {
   initialTokenStatus: ApiTokenStatus;
-};
-
-type TokenResponse = {
-  token?: ApiTokenStatus;
-  value?: string;
-  error?: string;
+  rotateTokenAction: () => Promise<{
+    status?: ApiTokenStatus;
+    value?: string;
+    error?: string;
+  }>;
 };
 
 function formatDate(value: string | null) {
@@ -29,15 +28,6 @@ function formatDate(value: string | null) {
     hour: "numeric",
     minute: "2-digit"
   }).format(new Date(value));
-}
-
-async function readTokenResponse(response: Response) {
-  const payload = (await response.json().catch(() => null)) as TokenResponse | null;
-  if (!response.ok) {
-    throw new Error(payload?.error ?? `Request failed (${response.status})`);
-  }
-
-  return payload ?? {};
 }
 
 type FeedbackState =
@@ -98,7 +88,7 @@ function DeveloperReferenceHint({ align = "left" }: { align?: "left" | "right" }
   );
 }
 
-export function TokenSettings({ initialTokenStatus }: TokenSettingsProps) {
+export function TokenSettings({ initialTokenStatus, rotateTokenAction }: TokenSettingsProps) {
   const [tokenStatus, setTokenStatus] = useState(initialTokenStatus);
   const [revealedToken, setRevealedToken] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
@@ -114,12 +104,12 @@ export function TokenSettings({ initialTokenStatus }: TokenSettingsProps) {
     startTransition(() => {
       void (async () => {
         try {
-          const response = await fetch("/api/settings/token", {
-            method: "POST"
-          });
-          const payload = await readTokenResponse(response);
-          if (payload.token) {
-            setTokenStatus(payload.token);
+          const payload = await rotateTokenAction();
+          if (payload.error) {
+            throw new Error(payload.error);
+          }
+          if (payload.status) {
+            setTokenStatus(payload.status);
           }
           setRevealedToken(payload.value ?? null);
         } catch (error) {
