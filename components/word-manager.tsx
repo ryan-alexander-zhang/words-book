@@ -36,6 +36,10 @@ interface WordManagerProps {
 
 type SortOrder = "desc" | "asc";
 type FeedbackTone = "error" | "info";
+type WordsResponse = {
+  words?: WordItem[];
+  error?: string;
+};
 
 const DECK_SIZE = 12;
 const IMPORT_FILE_SIZE_LIMIT_BYTES = 4 * 1024 * 1024;
@@ -132,9 +136,14 @@ function formatExportTimestamp(date: Date) {
   ].join("-");
 }
 
-async function readErrorMessage(response: Response) {
-  const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-  return payload?.error ?? `Request failed (${response.status})`;
+async function readWordsResponse(response: Response) {
+  const payload = (await response.json().catch(() => null)) as WordsResponse | null;
+
+  if (!response.ok) {
+    throw new Error(payload?.error ?? `Request failed (${response.status})`);
+  }
+
+  return normalizeWords(payload?.words ?? []);
 }
 
 function extractNames(payload: unknown) {
@@ -249,33 +258,15 @@ export function WordManager({ initialWords }: WordManagerProps) {
   const deckIndex = filteredWords.length === 0 ? 0 : Math.floor(deckCursor / DECK_SIZE) + 1;
   const deckTotal = Math.max(1, Math.ceil(filteredWords.length / DECK_SIZE));
 
-  const refreshWords = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch("/api/words", {
-        cache: "no-store"
-      });
-      if (!response.ok) {
-        throw new Error(await readErrorMessage(response));
+  const applyWords = (nextWords: WordItem[]) => {
+    setWords(nextWords);
+    setActiveWordId((previous) => {
+      if (previous && nextWords.some((word) => word.id === previous)) {
+        return previous;
       }
 
-      const data = (await response.json()) as { words?: WordItem[] };
-      const nextWords = normalizeWords(data.words ?? []);
-      setWords(nextWords);
-      setActiveWordId((previous) => {
-        if (previous && nextWords.some((word) => word.id === previous)) {
-          return previous;
-        }
-        return nextWords[0]?.id ?? null;
-      });
-    } catch (error) {
-      setFeedback({
-        tone: "error",
-        message: error instanceof Error ? error.message : "Unable to refresh words."
-      });
-    } finally {
-      setLoading(false);
-    }
+      return nextWords[0]?.id ?? null;
+    });
   };
 
   const handleAdd = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -300,18 +291,15 @@ export function WordManager({ initialWords }: WordManagerProps) {
         body: JSON.stringify({ name: trimmed })
       });
 
-      if (!response.ok) {
-        throw new Error(await readErrorMessage(response));
-      }
-
       setDraftWord("");
-      await refreshWords();
+      applyWords(await readWordsResponse(response));
     } catch (error) {
-      setLoading(false);
       setFeedback({
         tone: "error",
         message: error instanceof Error ? error.message : "Unable to add the word."
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -326,17 +314,14 @@ export function WordManager({ initialWords }: WordManagerProps) {
         body: JSON.stringify({ ids: [wordId] })
       });
 
-      if (!response.ok) {
-        throw new Error(await readErrorMessage(response));
-      }
-
-      await refreshWords();
+      applyWords(await readWordsResponse(response));
     } catch (error) {
-      setLoading(false);
       setFeedback({
         tone: "error",
         message: error instanceof Error ? error.message : "Unable to delete the word."
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -353,17 +338,14 @@ export function WordManager({ initialWords }: WordManagerProps) {
         body: JSON.stringify({ all: true })
       });
 
-      if (!response.ok) {
-        throw new Error(await readErrorMessage(response));
-      }
-
-      await refreshWords();
+      applyWords(await readWordsResponse(response));
     } catch (error) {
-      setLoading(false);
       setFeedback({
         tone: "error",
         message: error instanceof Error ? error.message : "Unable to clear the shelf."
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -396,7 +378,6 @@ export function WordManager({ initialWords }: WordManagerProps) {
           tone: "error",
           message: validationError
         });
-        setLoading(false);
         return;
       }
 
@@ -408,7 +389,6 @@ export function WordManager({ initialWords }: WordManagerProps) {
           tone: "info",
           message: "No new words were found in that file."
         });
-        setLoading(false);
         return;
       }
 
@@ -418,21 +398,18 @@ export function WordManager({ initialWords }: WordManagerProps) {
         body: JSON.stringify({ names: uniqueNames })
       });
 
-      if (!response.ok) {
-        throw new Error(await readErrorMessage(response));
-      }
-
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
 
-      await refreshWords();
+      applyWords(await readWordsResponse(response));
     } catch (error) {
-      setLoading(false);
       setFeedback({
         tone: "error",
         message: error instanceof Error ? error.message : "Unable to import that file."
       });
+    } finally {
+      setLoading(false);
     }
   };
 
