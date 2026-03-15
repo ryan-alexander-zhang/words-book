@@ -66,7 +66,7 @@ function InfoHint({ align = "left", children, label }: InfoHintProps) {
 
       <div
         className={cn(
-          "pointer-events-none absolute top-full z-20 mt-2 w-72 rounded-[22px] border border-border/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,239,231,0.96))] p-4 text-left text-xs leading-6 text-foreground opacity-0 shadow-[0_22px_48px_-30px_rgba(54,39,24,0.42)] transition duration-150 group-hover:opacity-100 group-focus-within:opacity-100",
+          "pointer-events-none absolute top-full z-30 mt-2 w-72 rounded-[22px] border border-border/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,239,231,0.96))] p-4 text-left text-xs leading-6 text-foreground opacity-0 shadow-[0_22px_48px_-30px_rgba(54,39,24,0.42)] transition duration-150 group-hover:opacity-100 group-focus-within:opacity-100",
           align === "right" ? "right-0" : "left-0"
         )}
         role="note"
@@ -154,7 +154,7 @@ export function TokenSettings({ initialTokenStatus }: TokenSettingsProps) {
   };
 
   return (
-    <section className="study-panel px-5 py-6 sm:px-6">
+    <section className="study-panel overflow-visible px-5 py-6 sm:px-6">
       <div className="relative z-10 mx-auto max-w-3xl space-y-5">
         <div className="space-y-2">
           <span className="hero-kicker">
