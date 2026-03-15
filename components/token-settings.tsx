@@ -8,11 +8,6 @@ import { type ApiTokenStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type TokenSettingsProps = {
-  user: {
-    name?: string | null;
-    email?: string | null;
-    image?: string | null;
-  };
   initialTokenStatus: ApiTokenStatus;
 };
 
@@ -36,11 +31,6 @@ function formatDate(value: string | null) {
   }).format(new Date(value));
 }
 
-function getUserInitials(user: TokenSettingsProps["user"]) {
-  const source = user.name?.trim() || user.email?.trim() || "wb";
-  return source.slice(0, 2).toUpperCase();
-}
-
 async function readTokenResponse(response: Response) {
   const payload = (await response.json().catch(() => null)) as TokenResponse | null;
   if (!response.ok) {
@@ -49,6 +39,13 @@ async function readTokenResponse(response: Response) {
 
   return payload ?? {};
 }
+
+type FeedbackState =
+  | {
+      tone: "error" | "info";
+      message: string;
+    }
+  | null;
 
 type InfoHintProps = {
   align?: "left" | "right";
@@ -101,15 +98,14 @@ function DeveloperReferenceHint({ align = "left" }: { align?: "left" | "right" }
   );
 }
 
-export function TokenSettings({ user, initialTokenStatus }: TokenSettingsProps) {
+export function TokenSettings({ initialTokenStatus }: TokenSettingsProps) {
   const [tokenStatus, setTokenStatus] = useState(initialTokenStatus);
   const [revealedToken, setRevealedToken] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [copied, setCopied] = useState(false);
   const [isPending, startTransition] = useTransition();
-
-  const avatarStyle = user.image ? { backgroundImage: `url(${user.image})` } : undefined;
-  const accountLabel = user.name || user.email || "Google account";
+  const actionLabel = tokenStatus.hasToken ? "Rotate credential" : "Create credential";
+  const pendingLabel = tokenStatus.hasToken ? "Rotating..." : "Creating...";
 
   const rotateToken = () => {
     setFeedback(null);
@@ -127,9 +123,11 @@ export function TokenSettings({ user, initialTokenStatus }: TokenSettingsProps) 
           }
           setRevealedToken(payload.value ?? null);
         } catch (error) {
-          setFeedback(
-            error instanceof Error ? error.message : "Unable to update the access credential."
-          );
+          setFeedback({
+            tone: "error",
+            message:
+              error instanceof Error ? error.message : "Unable to update the access credential."
+          });
         }
       })();
     });
@@ -143,171 +141,126 @@ export function TokenSettings({ user, initialTokenStatus }: TokenSettingsProps) 
     try {
       await navigator.clipboard.writeText(revealedToken);
       setCopied(true);
-      setFeedback("Access credential copied to the clipboard.");
+      setFeedback({
+        tone: "info",
+        message: "Access credential copied to the clipboard."
+      });
     } catch {
-      setFeedback("Clipboard access is not available in this browser.");
+      setFeedback({
+        tone: "error",
+        message: "Clipboard access is not available in this browser."
+      });
     }
   };
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,380px)]">
-      <section className="study-panel px-5 py-6 sm:px-6">
-        <div className="relative z-10 space-y-5">
-          <div className="space-y-2">
-            <span className="hero-kicker">
-              <KeyRound className="h-3.5 w-3.5" aria-hidden="true" />
-              Settings
-            </span>
-            <h1 className="display-font text-4xl leading-none tracking-tight text-foreground">
-              Access credentials
-            </h1>
-            <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
-              Issue the credential that lets Raycast, extensions, and scripts work with your
-              private word library. Rotate it whenever you need to cut off older connections.
-            </p>
-          </div>
+    <section className="study-panel px-5 py-6 sm:px-6">
+      <div className="relative z-10 mx-auto max-w-3xl space-y-5">
+        <div className="space-y-2">
+          <span className="hero-kicker">
+            <KeyRound className="h-3.5 w-3.5" aria-hidden="true" />
+            Settings
+          </span>
+          <h1 className="display-font text-4xl leading-none tracking-tight text-foreground">
+            Access credentials
+          </h1>
+          <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
+            Create or rotate the credential that trusted tools use to access this workspace.
+          </p>
+        </div>
 
-          <div className="settings-grid">
-            <article className="settings-card">
-              <div className="space-y-3">
+        <article className="settings-card space-y-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-3">
+              <div className="space-y-1">
                 <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-                  Workspace account
+                  Access credential
                 </p>
-                <div className="flex items-center gap-4">
-                  <span
-                    className={cn(
-                      "account-chip__avatar h-14 w-14 text-base",
-                      user.image && "account-chip__avatar--image"
-                    )}
-                    style={avatarStyle}
-                    aria-hidden="true"
-                  >
-                    {!user.image ? getUserInitials(user) : null}
-                  </span>
-                  <div className="space-y-1">
-                    <p className="text-lg font-semibold text-foreground">{accountLabel}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Your library and access credential stay scoped to this signed-in account.
-                    </p>
-                  </div>
-                </div>
+                <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+                  {tokenStatus.hasToken ? "Active" : "Not created yet"}
+                </h2>
               </div>
-            </article>
-
-            <article className="settings-card">
-              <div className="space-y-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="flex items-start gap-3">
-                    <div className="space-y-1">
-                      <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-                        Access credential
-                      </p>
-                      <h2 className="text-xl font-semibold text-foreground">
-                        {tokenStatus.hasToken ? "Credential is active" : "No credential issued yet"}
-                      </h2>
-                    </div>
-                    <DeveloperReferenceHint />
-                  </div>
-
-                  <Button onClick={rotateToken} disabled={isPending}>
-                    <RefreshCw className="h-4 w-4" aria-hidden="true" />
-                    {tokenStatus.hasToken ? "Rotate credential" : "Create credential"}
-                  </Button>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <div className="settings-stat">
-                    <span className="settings-stat__label">Issued</span>
-                    <span className="settings-stat__value">{formatDate(tokenStatus.createdAt)}</span>
-                  </div>
-                  <div className="settings-stat">
-                    <span className="settings-stat__label">Last rotated</span>
-                    <span className="settings-stat__value">{formatDate(tokenStatus.rotatedAt)}</span>
-                  </div>
-                  <div className="settings-stat">
-                    <span className="settings-stat__label">Last used</span>
-                    <span className="settings-stat__value">{formatDate(tokenStatus.lastUsedAt)}</span>
-                  </div>
-                </div>
-
-                <p className="text-sm leading-6 text-muted-foreground">
-                  This credential is only shown when it is created or rotated. Save it before you
-                  leave this page or you will need to rotate again to get a fresh value.
-                </p>
-              </div>
-            </article>
-          </div>
-
-          <section className="settings-card space-y-4">
-            <div className="space-y-1">
-              <h2 className="text-xl font-semibold text-foreground">Credential reveal</h2>
-              <p className="text-sm text-muted-foreground">
-                Copy this value now and place it in Raycast, extension settings, your password
-                manager, or local tooling before moving on.
+              <p className="max-w-xl text-sm leading-6 text-muted-foreground">
+                Applies to your current signed-in workspace.
               </p>
             </div>
 
-            {revealedToken ? (
-              <div className="space-y-3">
-                <div className="token-reveal-row">
-                  <Input value={revealedToken} readOnly className="font-mono text-xs sm:text-sm" />
-                  <Button variant="outline" onClick={() => void copyToken()}>
-                    {copied ? (
-                      <Check className="h-4 w-4" aria-hidden="true" />
-                    ) : (
-                      <Copy className="h-4 w-4" aria-hidden="true" />
-                    )}
-                    {copied ? "Copied" : "Copy"}
-                  </Button>
-                </div>
-
-                <div className="rounded-[22px] border border-border/70 bg-secondary/40 px-4 py-3 text-sm text-muted-foreground">
-                  This credential is ready to paste into any external tool that adds words on your
-                  behalf.
-                </div>
-              </div>
-            ) : (
-              <div className="rounded-[22px] border border-dashed border-border/75 bg-white/60 px-5 py-8 text-sm leading-6 text-muted-foreground">
-                No credential is currently visible. Create or rotate one to reveal a fresh value a
-                single time.
-              </div>
-            )}
-
-            {feedback ? (
-              <div className="rounded-[20px] border border-border/70 bg-white/70 px-4 py-3 text-sm text-muted-foreground">
-                {feedback}
-              </div>
-            ) : null}
-          </section>
-        </div>
-      </section>
-
-      <aside className="study-panel px-5 py-6 sm:px-6 xl:sticky xl:top-6 xl:self-start">
-        <div className="relative z-10 space-y-4">
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-muted-foreground">
-              Developer access
-            </p>
-            <h2 className="display-font text-3xl leading-none text-foreground">Connect your tools</h2>
-            <p className="text-sm leading-6 text-muted-foreground">
-              Use one credential across Raycast, browser extensions, and your own scripts without
-              crowding the main settings flow with protocol details. When you need request format
-              details, open the help icon beside the credential status.
-            </p>
+            <Button onClick={rotateToken} disabled={isPending} className="sm:min-w-[190px]">
+              <RefreshCw className={cn("h-4 w-4", isPending && "animate-spin")} aria-hidden="true" />
+              {isPending ? pendingLabel : actionLabel}
+            </Button>
           </div>
 
-          <div className="rounded-[24px] border border-border/70 bg-white/75 p-4 text-sm leading-6 text-muted-foreground">
-            <p>
-              Word additions are normalized automatically and duplicate saves are ignored inside
-              this account.
-            </p>
-            <p className="mt-3">
-              Rotate the credential immediately if it appears in logs, screenshots, or shared
-              configs. Older values stop working right away.
-            </p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="settings-stat">
+              <span className="settings-stat__label">Issued</span>
+              <span className="settings-stat__value">{formatDate(tokenStatus.createdAt)}</span>
+            </div>
+            <div className="settings-stat">
+              <span className="settings-stat__label">Last rotated</span>
+              <span className="settings-stat__value">{formatDate(tokenStatus.rotatedAt)}</span>
+            </div>
+            <div className="settings-stat">
+              <span className="settings-stat__label">Last used</span>
+              <span className="settings-stat__value">{formatDate(tokenStatus.lastUsedAt)}</span>
+            </div>
           </div>
-        </div>
-      </aside>
-    </div>
+
+          <div className="settings-inline-note">
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
+                Visibility rule
+              </p>
+              <p className="text-sm leading-6 text-muted-foreground">
+                The credential is only shown after create or rotate. Copy it before leaving or
+                rotating again.
+              </p>
+            </div>
+            <div className="inline-flex items-center gap-2 self-start sm:self-center">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+                Developer reference
+              </span>
+              <DeveloperReferenceHint align="right" />
+            </div>
+          </div>
+
+          {revealedToken ? (
+            <div className="settings-reveal">
+              <div className="space-y-1">
+                <h3 className="text-base font-semibold text-foreground">Copy credential now</h3>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  Copy this now. It will not be shown again after you leave or rotate.
+                </p>
+              </div>
+
+              <div className="token-reveal-row">
+                <Input value={revealedToken} readOnly className="font-mono text-xs sm:text-sm" />
+                <Button variant="outline" onClick={() => void copyToken()}>
+                  {copied ? (
+                    <Check className="h-4 w-4" aria-hidden="true" />
+                  ) : (
+                    <Copy className="h-4 w-4" aria-hidden="true" />
+                  )}
+                  {copied ? "Copied" : "Copy"}
+                </Button>
+              </div>
+            </div>
+          ) : null}
+
+          {feedback ? (
+            <div
+              className={cn(
+                "rounded-[20px] border px-4 py-3 text-sm",
+                feedback.tone === "error"
+                  ? "border-destructive/30 bg-destructive/10 text-destructive"
+                  : "border-border/70 bg-white/70 text-muted-foreground"
+              )}
+            >
+              {feedback.message}
+            </div>
+          ) : null}
+        </article>
+      </div>
+    </section>
   );
 }

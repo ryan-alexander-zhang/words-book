@@ -11,7 +11,7 @@ export default async function SettingsPage() {
 
   return (
     <WorkspaceShell currentPath="/settings" user={user}>
-      <TokenSettings user={user} initialTokenStatus={tokenStatus} />
+      <TokenSettings initialTokenStatus={tokenStatus} />
     </WorkspaceShell>
   );
 }
