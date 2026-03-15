@@ -23,6 +23,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { type WordItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import {
+  WORD_VALIDATION_HELP_TEXT,
+  getWordValidationError,
+  getWordsValidationError
+} from "@/lib/word-validation";
 import { WORD_LINKS, YOUGLISH_ACCENTS, resolveHref, resolveYouglishPronounceHref } from "@/lib/word-links";
 
 interface WordManagerProps {
@@ -276,7 +281,14 @@ export function WordManager({ initialWords }: WordManagerProps) {
   const handleAdd = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = draftWord.trim();
-    if (!trimmed) return;
+    const validationError = getWordValidationError(trimmed);
+    if (validationError) {
+      setFeedback({
+        tone: "error",
+        message: validationError
+      });
+      return;
+    }
 
     setLoading(true);
     setFeedback(null);
@@ -374,6 +386,20 @@ export function WordManager({ initialWords }: WordManagerProps) {
     try {
       const payload = JSON.parse(await file.text()) as unknown;
       const names = extractNames(payload);
+      const validationError = getWordsValidationError(names);
+      if (validationError) {
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+
+        setFeedback({
+          tone: "error",
+          message: validationError
+        });
+        setLoading(false);
+        return;
+      }
+
       const existing = new Set(words.map((word) => word.name.toLowerCase()));
       const uniqueNames = Array.from(new Set(names)).filter((name) => !existing.has(name));
 
@@ -575,7 +601,8 @@ export function WordManager({ initialWords }: WordManagerProps) {
 
             <div className="workbench-actions-row">
               <p className="workbench-note">
-                Import JSON up to 4MB. Lowercase only. Duplicate saves are ignored.
+                Import JSON up to 4MB. {WORD_VALIDATION_HELP_TEXT} Entries are saved in lowercase
+                and duplicates are ignored.
               </p>
 
               <div className="flex flex-wrap gap-2">

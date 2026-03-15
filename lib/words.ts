@@ -1,21 +1,12 @@
 import { type Word } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { type WordItem } from "@/lib/types";
+import { normalizeValidatedWordNames } from "@/lib/word-validation";
 
 export type CreateWordsResult = {
   createdCount: number;
   words: Word[];
 };
-
-function normalizeWordNames(names: string[]) {
-  return Array.from(
-    new Set(
-      names
-        .map((value) => value.trim().toLowerCase())
-        .filter(Boolean)
-    )
-  );
-}
 
 export function extractWordNames(body: unknown) {
   if (body && typeof body === "object" && "names" in body && Array.isArray(body.names)) {
@@ -37,11 +28,7 @@ export async function listWordsForOwner(ownerId: string) {
 }
 
 export async function createWordsForOwner(ownerId: string, names: string[]): Promise<CreateWordsResult> {
-  const cleaned = normalizeWordNames(names);
-
-  if (cleaned.length === 0) {
-    throw new Error("Name is required");
-  }
+  const cleaned = normalizeValidatedWordNames(names);
 
   const result = await prisma.word.createMany({
     data: cleaned.map((name) => ({ name, ownerId })),
