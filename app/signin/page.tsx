@@ -35,9 +35,9 @@ export default async function SignInPage() {
                 Private vocabulary desk for one account at a time.
               </h1>
               <p className="max-w-2xl text-base leading-7 text-muted-foreground">
-                Words, API tokens, and external automation are isolated to the Google account you
-                sign in with. Use the same workspace in the browser, Raycast, extensions, and your
-                own scripts.
+                Your saved words stay attached to the account you sign in with. Start in the
+                browser, then connect Raycast, extensions, or your own scripts whenever you need
+                them.
               </p>
             </div>
           </div>
@@ -50,8 +50,8 @@ export default async function SignInPage() {
                 </p>
                 <h2 className="text-2xl font-semibold text-foreground">Enter with Google</h2>
                 <p className="text-sm leading-6 text-muted-foreground">
-                  Browser access uses Auth.js sessions. External API access is generated later from
-                  the settings page as a separate bearer token.
+                  Use Google to open your private workspace. If you later want to connect external
+                  tools, you can issue a separate access credential from Settings.
                 </p>
               </div>
 
