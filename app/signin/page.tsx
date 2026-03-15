@@ -4,8 +4,6 @@ import { signIn } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { getSessionUser } from "@/lib/session";
 
-export const dynamic = "force-dynamic";
-
 async function handleGoogleSignIn() {
   "use server";
 
