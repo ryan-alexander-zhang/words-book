@@ -33,6 +33,7 @@ type SortOrder = "desc" | "asc";
 type FeedbackTone = "error" | "info";
 
 const DECK_SIZE = 12;
+const IMPORT_FILE_SIZE_LIMIT_BYTES = 4 * 1024 * 1024;
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -355,6 +356,18 @@ export function WordManager({ initialWords }: WordManagerProps) {
   };
 
   const handleImport = async (file: File) => {
+    if (file.size > IMPORT_FILE_SIZE_LIMIT_BYTES) {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+
+      setFeedback({
+        tone: "error",
+        message: "File is too large. Import a JSON file up to 4MB."
+      });
+      return;
+    }
+
     setLoading(true);
     setFeedback(null);
 
@@ -562,7 +575,7 @@ export function WordManager({ initialWords }: WordManagerProps) {
 
             <div className="workbench-actions-row">
               <p className="workbench-note">
-                Lowercase only. Duplicate saves are ignored.
+                Import JSON up to 4MB. Lowercase only. Duplicate saves are ignored.
               </p>
 
               <div className="flex flex-wrap gap-2">
@@ -746,19 +759,6 @@ export function WordManager({ initialWords }: WordManagerProps) {
                         <Copy className="h-4 w-4" aria-hidden="true" />
                       )}
                       {copiedWordId === activeWord.id ? "Copied" : "Copy word"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        startTransition(() => {
-                          setDeckCursor(0);
-                          setDeckVersion((previous) => previous + 1);
-                          setActiveWordId(null);
-                        });
-                      }}
-                    >
-                      <RefreshCw className="h-4 w-4" aria-hidden="true" />
-                      Fresh spread
                     </Button>
                     <Button
                       variant="destructive"
