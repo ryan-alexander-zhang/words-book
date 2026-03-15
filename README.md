@@ -35,6 +35,8 @@ Copy `.env.example` and fill in real values.
 | --- | --- | --- |
 | `DATABASE_URL` | yes | Prisma connection string for local or hosted PostgreSQL / Prisma Postgres |
 | `AUTH_SECRET` | yes | Auth.js session encryption secret |
+| `AUTH_URL` | recommended for self-hosted production | Canonical external origin used by Auth.js, for example `https://words.example.com` |
+| `AUTH_TRUST_HOST` | optional | Only set to `true` when your reverse proxy preserves `Host` safely |
 | `AUTH_GOOGLE_ID` | yes | Google OAuth client ID |
 | `AUTH_GOOGLE_SECRET` | yes | Google OAuth client secret |
 
@@ -159,6 +161,7 @@ Then verify in `Project Settings` -> `Environment Variables` that `DATABASE_URL`
 In `Project Settings` -> `Environment Variables`, add:
 
 - `AUTH_SECRET`
+- `AUTH_URL` if this is a self-hosted deployment
 - `AUTH_GOOGLE_ID`
 - `AUTH_GOOGLE_SECRET`
 
@@ -204,6 +207,7 @@ If the deployment fails:
 
 - confirm `DATABASE_URL` is present
 - confirm `AUTH_SECRET`, `AUTH_GOOGLE_ID`, and `AUTH_GOOGLE_SECRET` are present
+- confirm `AUTH_URL` is set for self-hosted production, or `AUTH_TRUST_HOST=true` is intentionally configured behind a trusted proxy
 - confirm the Google OAuth callback URI exactly matches the deployed domain
 
 ### 7. Verify the deployed application
@@ -295,6 +299,7 @@ Set the token in Raycast preferences after creating it in the web app settings p
 
 - `.env.docker` contains placeholders.
 - Replace `AUTH_SECRET`, `AUTH_GOOGLE_ID`, and `AUTH_GOOGLE_SECRET` before relying on the Dockerized web service.
+- `.env.docker` sets `AUTH_URL=http://localhost:3001` for local compose usage; change it if the container is exposed on another origin.
 - Fresh containers create tables through Prisma migrations at runtime.
 
 For day-to-day development, `docker compose up -d db` plus `npm run dev` is still the simpler path.
