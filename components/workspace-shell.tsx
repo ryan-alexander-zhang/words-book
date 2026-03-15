@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { BookOpen, LogOut, Settings } from "lucide-react";
 import { signOut } from "@/auth";
@@ -29,7 +30,6 @@ async function handleSignOut() {
 
 export function WorkspaceShell({ children, currentPath, user }: WorkspaceShellProps) {
   const userLabel = user.name || user.email || "Google account";
-  const avatarStyle = user.image ? { backgroundImage: `url(${user.image})` } : undefined;
 
   return (
     <main className="page-shell space-y-5">
@@ -68,12 +68,12 @@ export function WorkspaceShell({ children, currentPath, user }: WorkspaceShellPr
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="account-chip">
-              <span
-                className={cn("account-chip__avatar", user.image && "account-chip__avatar--image")}
-                style={avatarStyle}
-                aria-hidden="true"
-              >
-                {!user.image ? getUserInitials(user) : null}
+              <span className={cn("account-chip__avatar", user.image && "account-chip__avatar--image")}>
+                {user.image ? (
+                  <Image src={user.image} alt="" fill sizes="44px" className="object-cover" aria-hidden="true" />
+                ) : (
+                  getUserInitials(user)
+                )}
               </span>
               <span className="min-w-0">
                 <span className="account-chip__label">Signed in with Google</span>

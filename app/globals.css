@@ -164,10 +164,9 @@ a {
 }
 
 .account-chip__avatar {
-  @apply inline-flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-sm font-semibold text-foreground;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: cover;
+  @apply relative inline-flex h-11 w-11 overflow-hidden rounded-full bg-secondary text-sm font-semibold text-foreground;
+  justify-content: center;
+  align-items: center;
 }
 
 .account-chip__avatar--image {

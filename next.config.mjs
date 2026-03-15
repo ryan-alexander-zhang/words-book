@@ -2,7 +2,15 @@ import path from "node:path";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  outputFileTracingRoot: path.resolve("./")
+  outputFileTracingRoot: path.resolve("./"),
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com"
+      }
+    ]
+  }
 };
 
 export default nextConfig;
