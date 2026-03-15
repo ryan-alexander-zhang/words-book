@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
-    "build:vercel": "prisma migrate deploy && npm run build",
+    "build": "next build",
+    "build:vercel": "node scripts/vercel-build.mjs",
     "migrate:deploy": "prisma migrate deploy",
     "migrate:dev": "prisma migrate dev",
     "start": "next start",

@@ -111,7 +111,7 @@ New Vercel projects should use the current Marketplace-based database flow. Do n
 - Push this repository to GitHub, GitLab, or Bitbucket.
 - Make sure the branch you deploy contains the Prisma migration files in `prisma/migrations/`.
 - Prepare a Google OAuth app in Google Cloud Console.
-- Decide whether Preview deployments should use a separate database. This project runs `prisma migrate deploy` during Vercel builds, so sharing one `DATABASE_URL` across Production and Preview is risky.
+- Decide whether Preview deployments should use a separate database. Preview builds skip `prisma migrate deploy`, so schema-changing branches either need a Preview database or must stay compatible with the current shared schema.
 
 ### 1. Import the project into Vercel
 
@@ -138,10 +138,11 @@ npm run build:vercel
 
 `npm run build:vercel` runs:
 
-1. `prisma migrate deploy`
-2. `prisma generate && next build`
+1. `prisma migrate deploy` for Production builds
+2. skips migrations for Preview builds
+3. `next build`
 
-That keeps the database schema aligned before the deployment is finalized.
+That keeps Production schema changes aligned before the deployment is finalized without making every Preview build touch the database.
 
 ### 3. Provision Prisma Postgres from Vercel Marketplace
 
@@ -223,13 +224,13 @@ After deploy:
 
 ### 8. Optional but recommended: isolate Preview deployments
 
-This project applies Prisma migrations during deployment. If Preview and Production share the same `DATABASE_URL`, a preview deployment can change the production schema.
+Production deployments apply Prisma migrations during deployment. Preview deployments skip them. If Preview and Production share the same `DATABASE_URL`, Preview code must remain compatible with the already-applied schema.
 
 Safer options:
 
 - give Preview its own Postgres database and Preview-scoped `DATABASE_URL`
 - or disable Preview deployments until you are ready to manage separate databases
-- or only deploy schema-changing branches to Production intentionally
+- or only send schema-compatible branches to Preview and reserve schema changes for Production
 
 ## Post-Deploy API Test
 
@@ -346,6 +347,6 @@ Make sure the Vercel project build command is:
 npm run build:vercel
 ```
 
-That is what applies Prisma migrations before the Next.js build.
+That applies Prisma migrations for Production builds before the Next.js build, while Preview builds skip migrations.
 
 The Docker runtime path follows the same rule: the web container applies Prisma migrations on startup before serving traffic.
