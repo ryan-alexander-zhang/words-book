@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { type WordItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { type WordsMutationResult } from "@/app/actions/words";
 import {
   WORD_VALIDATION_HELP_TEXT,
   getWordValidationError,
@@ -32,15 +33,15 @@ import { WORD_LINKS, YOUGLISH_ACCENTS, resolveHref, resolveYouglishPronounceHref
 
 interface WordManagerProps {
   initialWords: WordItem[];
+  mutateWordsAction: (input:
+    | { type: "add"; name: string }
+    | { type: "import"; names: string[] }
+    | { type: "delete"; ids: number[] }
+    | { type: "clear" }) => Promise<WordsMutationResult>;
 }
 
 type SortOrder = "desc" | "asc";
 type FeedbackTone = "error" | "info";
-type WordsResponse = {
-  words?: WordItem[];
-  error?: string;
-};
-
 const DECK_SIZE = 12;
 const IMPORT_FILE_SIZE_LIMIT_BYTES = 4 * 1024 * 1024;
 
@@ -136,14 +137,12 @@ function formatExportTimestamp(date: Date) {
   ].join("-");
 }
 
-async function readWordsResponse(response: Response) {
-  const payload = (await response.json().catch(() => null)) as WordsResponse | null;
-
-  if (!response.ok) {
-    throw new Error(payload?.error ?? `Request failed (${response.status})`);
+function readWordsResult(result: WordsMutationResult) {
+  if (result.error) {
+    throw new Error(result.error);
   }
 
-  return normalizeWords(payload?.words ?? []);
+  return normalizeWords(result.words ?? []);
 }
 
 function extractNames(payload: unknown) {
@@ -178,7 +177,7 @@ function getCardStyle(wordId: number, index: number) {
   } as CSSProperties;
 }
 
-export function WordManager({ initialWords }: WordManagerProps) {
+export function WordManager({ initialWords, mutateWordsAction }: WordManagerProps) {
   const [words, setWords] = useState<WordItem[]>(initialWords);
   const [draftWord, setDraftWord] = useState("");
   const [query, setQuery] = useState("");
@@ -285,14 +284,8 @@ export function WordManager({ initialWords }: WordManagerProps) {
     setFeedback(null);
 
     try {
-      const response = await fetch("/api/words", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: trimmed })
-      });
-
       setDraftWord("");
-      applyWords(await readWordsResponse(response));
+      applyWords(readWordsResult(await mutateWordsAction({ type: "add", name: trimmed })));
     } catch (error) {
       setFeedback({
         tone: "error",
@@ -308,13 +301,7 @@ export function WordManager({ initialWords }: WordManagerProps) {
     setFeedback(null);
 
     try {
-      const response = await fetch("/api/words", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: [wordId] })
-      });
-
-      applyWords(await readWordsResponse(response));
+      applyWords(readWordsResult(await mutateWordsAction({ type: "delete", ids: [wordId] })));
     } catch (error) {
       setFeedback({
         tone: "error",
@@ -332,13 +319,7 @@ export function WordManager({ initialWords }: WordManagerProps) {
     setFeedback(null);
 
     try {
-      const response = await fetch("/api/words", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ all: true })
-      });
-
-      applyWords(await readWordsResponse(response));
+      applyWords(readWordsResult(await mutateWordsAction({ type: "clear" })));
     } catch (error) {
       setFeedback({
         tone: "error",
@@ -392,17 +373,11 @@ export function WordManager({ initialWords }: WordManagerProps) {
         return;
       }
 
-      const response = await fetch("/api/words", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ names: uniqueNames })
-      });
-
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
 
-      applyWords(await readWordsResponse(response));
+      applyWords(readWordsResult(await mutateWordsAction({ type: "import", names: uniqueNames })));
     } catch (error) {
       setFeedback({
         tone: "error",

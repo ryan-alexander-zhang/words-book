@@ -1,3 +1,4 @@
+import { mutateWordsAction } from "@/app/actions/words";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { WordManager } from "@/components/word-manager";
 import { requireSessionUser } from "@/lib/session";
@@ -12,7 +13,7 @@ export default async function Home() {
 
   return (
     <WorkspaceShell currentPath="/" user={user}>
-      <WordManager initialWords={serialized} />
+      <WordManager initialWords={serialized} mutateWordsAction={mutateWordsAction} />
     </WorkspaceShell>
   );
 }
