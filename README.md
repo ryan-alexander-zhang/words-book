@@ -104,56 +104,109 @@ Then copy the generated client ID and client secret into:
 
 New Vercel projects should use the current Marketplace-based database flow. Do not use legacy Vercel Postgres instructions.
 
-### 1. Push the repo
+### Before you start
 
-Push this repository to GitHub, GitLab, or Bitbucket.
+- Push this repository to GitHub, GitLab, or Bitbucket.
+- Make sure the branch you deploy contains the Prisma migration files in `prisma/migrations/`.
+- Prepare a Google OAuth app in Google Cloud Console.
+- Decide whether Preview deployments should use a separate database. This project runs `prisma migrate deploy` during Vercel builds, so sharing one `DATABASE_URL` across Production and Preview is risky.
 
-### 2. Create the Vercel project
+### 1. Import the project into Vercel
 
-- Import the repo in Vercel.
-- Keep the framework preset as `Next.js`.
+In the Vercel dashboard:
 
-### 3. Provision Prisma Postgres from Vercel Marketplace
+1. Click `Add New...` -> `Project`.
+2. Select the repository.
+3. Keep the framework preset as `Next.js`.
+4. Leave the root directory as the repository root unless you intentionally deploy from a subdirectory.
+5. Continue to the project configuration screen.
 
-- In Vercel, open your project.
-- Add a Postgres integration from the Marketplace that provisions Prisma Postgres.
-- Let Vercel inject the database connection string into the project.
-- Confirm `DATABASE_URL` appears in the project environment variables.
+### 2. Configure the build settings
 
-### 4. Configure auth environment variables in Vercel
+In `Project Settings` -> `Build and Development Settings`:
 
-Add:
-
-- `AUTH_SECRET`
-- `AUTH_GOOGLE_ID`
-- `AUTH_GOOGLE_SECRET`
-
-Use your production domain in the Google OAuth redirect URI:
-
-```text
-https://your-domain/api/auth/callback/google
-```
-
-### 5. Set the build command
-
-Use:
+- Build Command:
 
 ```bash
 npm run build:vercel
 ```
 
-This runs:
+- Install Command: keep the default unless your environment requires a custom value.
+- Output Directory: leave empty for this app.
+
+`npm run build:vercel` runs:
 
 1. `prisma migrate deploy`
 2. `prisma generate && next build`
 
-That keeps the database schema aligned before Vercel builds the app.
+That keeps the database schema aligned before the deployment is finalized.
 
-### 6. Deploy
+### 3. Provision Prisma Postgres from Vercel Marketplace
+
+In the Vercel dashboard:
+
+1. Open the project.
+2. Go to `Storage`.
+3. Click `Browse Marketplace`.
+4. Choose a Postgres integration that provisions Prisma Postgres.
+5. Connect it to this Vercel project.
+6. Let Vercel inject the database connection string automatically.
+
+Then verify in `Project Settings` -> `Environment Variables` that `DATABASE_URL` now exists.
+
+### 4. Add the required environment variables
+
+In `Project Settings` -> `Environment Variables`, add:
+
+- `AUTH_SECRET`
+- `AUTH_GOOGLE_ID`
+- `AUTH_GOOGLE_SECRET`
+
+Recommended scope:
+
+- `Production`: always required
+- `Preview`: only if you intentionally support preview deployments
+- `Development`: optional in Vercel, not needed for local `.env.local`
+
+Generate `AUTH_SECRET` with:
+
+```bash
+openssl rand -base64 32
+```
+
+### 5. Configure Google OAuth for the Vercel domain
+
+In Google Cloud Console, update your OAuth client.
+
+Authorized JavaScript origins should include:
+
+- `http://localhost:3000`
+- `https://your-domain`
+
+Authorized redirect URIs should include:
+
+- `http://localhost:3000/api/auth/callback/google`
+- `https://your-domain/api/auth/callback/google`
+
+For the default Vercel-generated domain, the production callback looks like:
+
+```text
+https://your-domain/api/auth/callback/google
+```
+
+If you later add a custom domain, add that domain to the same OAuth client as well.
+
+### 6. Trigger the first deployment
 
 Trigger the first deployment from Vercel.
 
-### 7. Verify the deployment
+If the deployment fails:
+
+- confirm `DATABASE_URL` is present
+- confirm `AUTH_SECRET`, `AUTH_GOOGLE_ID`, and `AUTH_GOOGLE_SECRET` are present
+- confirm the Google OAuth callback URI exactly matches the deployed domain
+
+### 7. Verify the deployed application
 
 After deploy:
 
@@ -163,6 +216,16 @@ After deploy:
 4. Open `/settings`.
 5. Create an API token.
 6. Use the token with `/api/v1/words`.
+
+### 8. Optional but recommended: isolate Preview deployments
+
+This project applies Prisma migrations during deployment. If Preview and Production share the same `DATABASE_URL`, a preview deployment can change the production schema.
+
+Safer options:
+
+- give Preview its own Postgres database and Preview-scoped `DATABASE_URL`
+- or disable Preview deployments until you are ready to manage separate databases
+- or only deploy schema-changing branches to Production intentionally
 
 ## Post-Deploy API Test
 
