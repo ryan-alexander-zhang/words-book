@@ -10,6 +10,6 @@ pnpm-debug.log*
 coverage
 .prisma
 .superpowers/
-package-lock.json
+raycast-extension/package-lock.json
 next-env.d.ts
 raycast-extension/raycast-env.d.ts
