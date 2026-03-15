@@ -21,6 +21,25 @@ const WORD_LINKS = [
   }
 ];
 
+function isLoopbackHost(hostname) {
+  return hostname === "localhost" || hostname === "127.0.0.1";
+}
+
+function normalizeApiBaseUrl(value) {
+  try {
+    const url = new URL(value);
+    const isAllowedHttp = url.protocol === "http:" && isLoopbackHost(url.hostname);
+
+    if (url.protocol !== "https:" && !isAllowedHttp) {
+      return null;
+    }
+
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
+
 function normalizeSelection(text) {
   if (!text) return null;
   const trimmed = text.trim();
@@ -35,14 +54,33 @@ function resolveHref(template, name) {
   return template.replaceAll("{name}", encodedName);
 }
 
+async function getStoredSettings() {
+  const [localResult, syncResult] = await Promise.all([
+    chrome.storage.local.get(["apiBaseUrl", "apiToken"]),
+    chrome.storage.sync.get(["apiBaseUrl", "apiToken"])
+  ]);
+
+  const apiBaseUrl = localResult.apiBaseUrl || syncResult.apiBaseUrl || DEFAULT_API_BASE;
+  const apiToken = localResult.apiToken || syncResult.apiToken || "";
+
+  if ((!localResult.apiBaseUrl && syncResult.apiBaseUrl) || (!localResult.apiToken && syncResult.apiToken)) {
+    await chrome.storage.local.set({ apiBaseUrl, apiToken });
+    await chrome.storage.sync.remove(["apiBaseUrl", "apiToken"]);
+  }
+
+  return { apiBaseUrl, apiToken };
+}
+
 async function getApiBase() {
-  const result = await chrome.storage.sync.get({
-    apiBaseUrl: DEFAULT_API_BASE,
-    apiToken: ""
-  });
+  const result = await getStoredSettings();
+  const normalizedApiBase = normalizeApiBaseUrl(result.apiBaseUrl || DEFAULT_API_BASE);
+
+  if (!normalizedApiBase) {
+    throw new Error("Invalid API base URL. Use HTTPS for hosted deployments, or HTTP only for localhost.");
+  }
 
   return {
-    apiBase: result.apiBaseUrl || DEFAULT_API_BASE,
+    apiBase: normalizedApiBase,
     apiToken: result.apiToken?.trim() || ""
   };
 }

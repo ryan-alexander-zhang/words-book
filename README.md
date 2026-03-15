@@ -283,6 +283,8 @@ The extension in `chrome-extension/` now requires:
 
 Open the extension options page and fill both values before using “Add to Words Book”.
 
+The Chrome extension now stores its bearer token in local extension storage only. Hosted deployments should use an `https://` API base URL; plain `http://` is only supported for `localhost`.
+
 ### Raycast extension
 
 The Raycast extension in `raycast-extension/` now requires:

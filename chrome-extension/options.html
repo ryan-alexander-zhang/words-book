@@ -48,11 +48,11 @@
   <body>
     <h1>Words Book Saver</h1>
     <label for="apiBaseUrl">Words Book API base URL</label>
-    <input id="apiBaseUrl" type="url" placeholder="http://localhost:3000" />
-    <div class="hint">Example: http://localhost:3000</div>
+    <input id="apiBaseUrl" type="url" placeholder="https://your-domain" />
+    <div class="hint">Use HTTPS for hosted deployments. HTTP is only allowed for localhost.</div>
     <label for="apiToken" style="margin-top: 18px">API token</label>
     <input id="apiToken" type="password" placeholder="wb_xxxxx.yyyyy" />
-    <div class="hint">Create the token in Words Book → Settings, then paste it here.</div>
+    <div class="hint">Create the token in Words Book → Settings, then paste it here. It stays on this device only.</div>
     <button id="save">Save</button>
     <div id="status" role="status"></div>
     <script src="options.js"></script>
