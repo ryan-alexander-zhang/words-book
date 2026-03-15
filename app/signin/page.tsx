@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { ArrowRight, LockKeyhole, ShieldCheck } from "lucide-react";
+import { ArrowRight, BookOpen, LockKeyhole } from "lucide-react";
 import { signIn } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { getSessionUser } from "@/lib/session";
@@ -23,47 +23,36 @@ export default async function SignInPage() {
 
   return (
     <main className="page-shell flex min-h-screen items-center justify-center">
-      <section className="study-panel w-full max-w-5xl px-5 py-8 sm:px-8 sm:py-10">
-        <div className="relative z-10 grid gap-8 xl:grid-cols-[minmax(0,1.1fr)_360px] xl:items-center">
-          <div className="space-y-5">
-            <span className="hero-kicker">
-              <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
-              Google sign-in required
+      <section className="study-panel w-full max-w-xl px-5 py-8 sm:px-8 sm:py-10">
+        <div className="relative z-10 mx-auto flex max-w-md flex-col items-center text-center">
+          <span className="inline-flex items-center gap-3 rounded-full border border-border/75 bg-white/85 px-4 py-2 shadow-[0_16px_34px_-28px_rgba(54,39,24,0.44)]">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
+              <BookOpen className="h-4 w-4" aria-hidden="true" />
             </span>
-            <div className="space-y-3">
-              <h1 className="display-font text-5xl leading-none tracking-tight text-foreground sm:text-6xl">
-                Private vocabulary desk for one account at a time.
-              </h1>
-              <p className="max-w-2xl text-base leading-7 text-muted-foreground">
-                Your saved words stay attached to the account you sign in with. Start in the
-                browser, then connect Raycast, extensions, or your own scripts whenever you need
-                them.
-              </p>
-            </div>
+            <span className="text-left">
+              <span className="block text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">
+                Words Book
+              </span>
+              <span className="block text-sm font-semibold text-foreground">Private workspace</span>
+            </span>
+          </span>
+
+          <div className="mt-10 space-y-4">
+            <h1 className="display-font text-5xl leading-none tracking-tight text-foreground sm:text-6xl">
+              Enter your workspace
+            </h1>
+            <p className="text-base leading-7 text-muted-foreground">
+              One account. One personal library.
+            </p>
           </div>
 
-          <div className="rounded-[30px] border border-border/70 bg-white/75 p-5 shadow-[0_20px_48px_-32px_rgba(54,39,24,0.42)]">
-            <div className="space-y-5">
-              <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.32em] text-muted-foreground">
-                  Secure access
-                </p>
-                <h2 className="text-2xl font-semibold text-foreground">Enter with Google</h2>
-                <p className="text-sm leading-6 text-muted-foreground">
-                  Use Google to open your private workspace. If you later want to connect external
-                  tools, you can issue a separate access credential from Settings.
-                </p>
-              </div>
-
-              <form action={handleGoogleSignIn} className="space-y-4">
-                <Button type="submit" size="lg" className="w-full">
-                  <LockKeyhole className="h-4 w-4" aria-hidden="true" />
-                  Continue with Google
-                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                </Button>
-              </form>
-            </div>
-          </div>
+          <form action={handleGoogleSignIn} className="mt-10 w-full">
+            <Button type="submit" size="lg" className="w-full">
+              <LockKeyhole className="h-4 w-4" aria-hidden="true" />
+              Continue with Google
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          </form>
         </div>
       </section>
     </main>
