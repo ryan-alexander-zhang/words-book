@@ -19,16 +19,24 @@ export const WORD_LINKS: WordLink[] = [
   {
     label: "Collins",
     href: "https://www.collinsdictionary.com/dictionary/english/{name}"
-  },
-  {
-    label: "YouGlish",
-    href: "https://youglish.com/pronounce/{name}/english/{accent}"
   }
 ];
 
-export function resolveHref(template: string, name: string, accent = "us") {
+export const YOUGLISH_ACCENTS = [
+  { label: "American", value: "us" },
+  { label: "British", value: "uk" },
+  { label: "Australian", value: "aus" }
+] as const;
+
+export function resolveHref(template: string, name: string) {
   const encodedName = encodeURIComponent(name);
-  return template
-    .replaceAll("{name}", encodedName)
-    .replaceAll("{accent}", encodeURIComponent(accent));
+  return template.replaceAll("{name}", encodedName);
+}
+
+export function resolveYouglishPronounceHref(
+  name: string,
+  accent: (typeof YOUGLISH_ACCENTS)[number]["value"]
+) {
+  const encodedName = encodeURIComponent(name);
+  return `https://youglish.com/pronounce/${encodedName}/english/${encodeURIComponent(accent)}`;
 }

@@ -19,12 +19,11 @@ import {
   Trash2,
   Upload
 } from "lucide-react";
-import { PronounceWidget, type PronounceAccent } from "@/components/pronounce-widget";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { type WordItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { WORD_LINKS, resolveHref } from "@/lib/word-links";
+import { WORD_LINKS, YOUGLISH_ACCENTS, resolveHref, resolveYouglishPronounceHref } from "@/lib/word-links";
 
 interface WordManagerProps {
   initialWords: WordItem[];
@@ -175,7 +174,6 @@ export function WordManager({ initialWords }: WordManagerProps) {
   const [activeWordId, setActiveWordId] = useState<number | null>(initialWords[0]?.id ?? null);
   const [deckCursor, setDeckCursor] = useState(0);
   const [deckVersion, setDeckVersion] = useState(0);
-  const [accent, setAccent] = useState<PronounceAccent>("us");
   const [copiedWordId, setCopiedWordId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const hasInitializedDeck = useRef(false);
@@ -784,7 +782,7 @@ export function WordManager({ initialWords }: WordManagerProps) {
                     {WORD_LINKS.map((item) => (
                       <a
                         key={item.label}
-                        href={resolveHref(item.href, activeWord.name, accent)}
+                        href={resolveHref(item.href, activeWord.name)}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center justify-between rounded-[20px] border border-border/80 bg-white px-4 py-3 text-sm font-medium text-foreground transition hover:-translate-y-0.5 hover:bg-secondary"
@@ -800,41 +798,32 @@ export function WordManager({ initialWords }: WordManagerProps) {
                   <div className="space-y-1">
                     <h3 className="text-lg font-semibold text-foreground">Pronounce</h3>
                     <p className="text-sm text-muted-foreground">
-                      Switch accent here, then listen from a slimmer in-page YouGlish player.
+                      Choose an accent to open the matching YouGlish pronunciation page.
                     </p>
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      { label: "American", value: "us" as const },
-                      { label: "British", value: "uk" as const },
-                      { label: "Australian", value: "aus" as const }
-                    ].map((option) => (
-                      <button
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    {YOUGLISH_ACCENTS.map((option) => (
+                      <a
                         key={option.value}
-                        type="button"
-                        onClick={() => setAccent(option.value)}
-                        className={cn(
-                          "rounded-full border px-3 py-1.5 text-sm font-medium transition",
-                          accent === option.value
-                            ? "border-foreground/15 bg-foreground text-white"
-                            : "border-border/80 bg-white text-muted-foreground hover:bg-secondary"
-                        )}
+                        href={resolveYouglishPronounceHref(activeWord.name, option.value)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center justify-center gap-2 rounded-full border border-border/80 bg-white px-3 py-2 text-sm font-medium text-foreground transition hover:-translate-y-0.5 hover:bg-secondary"
                       >
-                        {option.label}
-                      </button>
+                        <span>{option.label}</span>
+                        <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                      </a>
                     ))}
                   </div>
-
-                  <PronounceWidget term={activeWord.name} accent={accent} />
                 </div>
               </>
             ) : (
               <div className="rounded-[28px] border border-dashed border-border/70 bg-white/70 px-6 py-12 text-center">
                 <h2 className="display-font text-3xl text-foreground">No focus word yet.</h2>
                 <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                  Add a word or open a matching card to activate the pronounce panel and reference
-                  shelf.
+                  Add a word or open a matching card to activate pronunciation links and the
+                  reference shelf.
                 </p>
               </div>
             )}
