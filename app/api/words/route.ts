@@ -1,64 +1,70 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
+import {
+  clearWordsForOwner,
+  createWordsForOwner,
+  deleteWordsForOwner,
+  extractWordNames,
+  listWordsForOwner,
+  serializeWords
+} from "@/lib/words";
+
+function unauthorized() {
+  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+}
 
 export async function GET() {
-  const words = await prisma.word.findMany({
-    orderBy: { createdAt: "desc" }
-  });
-  return NextResponse.json({ words });
+  const session = await auth();
+  if (!session?.user?.id) {
+    return unauthorized();
+  }
+
+  const words = await listWordsForOwner(session.user.id);
+  return NextResponse.json({ words: serializeWords(words) });
 }
 
 export async function POST(request: Request) {
-  const body = await request.json();
-  const names: string[] = Array.isArray(body?.names)
-    ? body.names
-    : typeof body?.name === "string"
-      ? [body.name]
-      : [];
-  const cleaned = Array.from(
-    new Set(
-      names
-        .map((value) => value.trim().toLowerCase())
-        .filter(Boolean)
-    )
-  );
-
-  if (cleaned.length === 0) {
-    return NextResponse.json({ error: "Name is required" }, { status: 400 });
+  const session = await auth();
+  if (!session?.user?.id) {
+    return unauthorized();
   }
 
-  await prisma.word.createMany({
-    data: cleaned.map((name) => ({ name })),
-    skipDuplicates: true
-  });
+  const body = await request.json().catch(() => null);
 
-  const words = await prisma.word.findMany({
-    orderBy: { createdAt: "desc" }
-  });
-
-  return NextResponse.json({ words });
+  try {
+    const { words } = await createWordsForOwner(session.user.id, extractWordNames(body));
+    return NextResponse.json({ words: serializeWords(words) });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Unable to add words" },
+      { status: 400 }
+    );
+  }
 }
 
 export async function DELETE(request: Request) {
-  const body = await request.json();
-
-  if (body?.all) {
-    await prisma.word.deleteMany({});
-  } else if (Array.isArray(body?.ids) && body.ids.length > 0) {
-    const ids = body.ids.filter((id: unknown) => typeof id === "number");
-    if (ids.length === 0) {
-      return NextResponse.json({ error: "No valid ids provided" }, { status: 400 });
-    }
-    await prisma.word.deleteMany({
-      where: { id: { in: ids } }
-    });
-  } else {
-    return NextResponse.json({ error: "Missing ids or all flag" }, { status: 400 });
+  const session = await auth();
+  if (!session?.user?.id) {
+    return unauthorized();
   }
 
-  const words = await prisma.word.findMany({
-    orderBy: { createdAt: "desc" }
-  });
+  const body = await request.json().catch(() => null);
 
-  return NextResponse.json({ words });
+  try {
+    const words = body?.all
+      ? await clearWordsForOwner(session.user.id)
+      : await deleteWordsForOwner(
+          session.user.id,
+          Array.isArray(body?.ids)
+            ? body.ids.filter((id: unknown): id is number => typeof id === "number")
+            : []
+        );
+
+    return NextResponse.json({ words: serializeWords(words) });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Unable to delete words" },
+      { status: 400 }
+    );
+  }
 }

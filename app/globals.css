@@ -131,8 +131,83 @@ a {
   @apply text-sm leading-6 text-muted-foreground;
 }
 
+.brand-mark {
+  @apply inline-flex items-center gap-3 rounded-[24px] border border-border/75 bg-white/80 px-4 py-3 shadow-[0_14px_30px_-24px_rgba(54,39,24,0.42)] transition hover:-translate-y-0.5;
+}
+
+.brand-mark__icon {
+  @apply inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground;
+}
+
+.brand-mark__eyebrow {
+  @apply block text-[10px] font-semibold uppercase tracking-[0.26em] text-muted-foreground;
+}
+
+.brand-mark__title {
+  @apply block text-base font-semibold text-foreground;
+}
+
+.workspace-nav {
+  @apply flex flex-wrap items-center gap-2;
+}
+
+.workspace-nav__link {
+  @apply inline-flex items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-medium text-muted-foreground transition hover:border-border hover:bg-white/80 hover:text-foreground;
+}
+
+.workspace-nav__link--active {
+  @apply border-border bg-white text-foreground shadow-[0_14px_28px_-24px_rgba(54,39,24,0.6)];
+}
+
+.account-chip {
+  @apply flex min-w-0 items-center gap-3 rounded-[24px] border border-border/75 bg-white/80 px-4 py-3 shadow-[0_14px_30px_-24px_rgba(54,39,24,0.42)];
+}
+
+.account-chip__avatar {
+  @apply inline-flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-sm font-semibold text-foreground;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.account-chip__avatar--image {
+  @apply bg-transparent text-transparent;
+}
+
+.account-chip__label {
+  @apply block text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground;
+}
+
+.account-chip__value {
+  @apply block truncate text-sm font-semibold text-foreground;
+}
+
 .stat-chip {
   @apply flex h-full min-h-[132px] flex-col justify-between rounded-[24px] border border-border/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(247,240,232,0.82))] p-4 shadow-[0_16px_30px_-24px_rgba(54,39,24,0.35)];
+}
+
+.settings-grid {
+  @apply grid gap-4 lg:grid-cols-2;
+}
+
+.settings-card {
+  @apply rounded-[28px] border border-border/70 bg-white/75 p-5 shadow-[0_18px_42px_-30px_rgba(54,39,24,0.42)];
+}
+
+.settings-stat {
+  @apply rounded-[22px] border border-border/70 bg-secondary/40 px-4 py-3;
+}
+
+.settings-stat__label {
+  @apply block text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground;
+}
+
+.settings-stat__value {
+  @apply mt-2 block text-sm font-medium leading-6 text-foreground;
+}
+
+.token-reveal-row {
+  @apply flex flex-col gap-3 sm:flex-row;
 }
 
 .word-card {

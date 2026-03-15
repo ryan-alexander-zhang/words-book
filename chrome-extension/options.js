@@ -1,5 +1,6 @@
 const DEFAULT_API_BASE = "http://localhost:3000";
-const input = document.getElementById("apiBaseUrl");
+const apiBaseInput = document.getElementById("apiBaseUrl");
+const apiTokenInput = document.getElementById("apiToken");
 const status = document.getElementById("status");
 const saveButton = document.getElementById("save");
 
@@ -11,13 +12,20 @@ function showStatus(message) {
 }
 
 async function restoreOptions() {
-  const result = await chrome.storage.sync.get({ apiBaseUrl: DEFAULT_API_BASE });
-  input.value = result.apiBaseUrl || DEFAULT_API_BASE;
+  const result = await chrome.storage.sync.get({
+    apiBaseUrl: DEFAULT_API_BASE,
+    apiToken: ""
+  });
+
+  apiBaseInput.value = result.apiBaseUrl || DEFAULT_API_BASE;
+  apiTokenInput.value = result.apiToken || "";
 }
 
 async function saveOptions() {
-  const value = input.value.trim() || DEFAULT_API_BASE;
-  await chrome.storage.sync.set({ apiBaseUrl: value });
+  const apiBaseUrl = apiBaseInput.value.trim() || DEFAULT_API_BASE;
+  const apiToken = apiTokenInput.value.trim();
+
+  await chrome.storage.sync.set({ apiBaseUrl, apiToken });
   showStatus("Saved.");
 }
 

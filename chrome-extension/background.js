@@ -36,16 +36,28 @@ function resolveHref(template, name) {
 }
 
 async function getApiBase() {
-  const result = await chrome.storage.sync.get({ apiBaseUrl: DEFAULT_API_BASE });
-  return result.apiBaseUrl || DEFAULT_API_BASE;
+  const result = await chrome.storage.sync.get({
+    apiBaseUrl: DEFAULT_API_BASE,
+    apiToken: ""
+  });
+
+  return {
+    apiBase: result.apiBaseUrl || DEFAULT_API_BASE,
+    apiToken: result.apiToken?.trim() || ""
+  };
 }
 
 async function addWordToBook(word) {
-  const apiBase = await getApiBase();
-  const response = await fetch(`${apiBase}/api/words`, {
+  const { apiBase, apiToken } = await getApiBase();
+  if (!apiToken) {
+    throw new Error("Missing API token. Open the extension options and paste the token from Words Book settings.");
+  }
+
+  const response = await fetch(`${apiBase}/api/v1/words`, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiToken}`
     },
     body: JSON.stringify({ name: word })
   });

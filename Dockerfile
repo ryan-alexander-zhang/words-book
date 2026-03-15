@@ -32,11 +32,13 @@ ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0
 
 RUN useradd -m nextjs
+COPY --from=builder --chown=nextjs:nextjs /app/package.json ./package.json
+COPY --from=builder --chown=nextjs:nextjs /app/node_modules ./node_modules
+COPY --from=builder --chown=nextjs:nextjs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nextjs /app/.next ./.next
+COPY --from=builder --chown=nextjs:nextjs /app/next.config.mjs ./next.config.mjs
+
 USER nextjs
 
-# COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-
 EXPOSE 3000
-CMD ["node", "server.js"]
+CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node_modules/.bin/next start -H 0.0.0.0 -p 3000"]

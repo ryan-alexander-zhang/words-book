@@ -35,6 +35,13 @@
       "default": "http://localhost:3000"
     },
     {
+      "name": "apiToken",
+      "title": "API Token",
+      "description": "Bearer token created from Words Book settings",
+      "type": "password",
+      "required": true
+    },
+    {
       "name": "randomCount",
       "title": "Random Count",
       "description": "How many random words to show",
@@ -55,4 +62,3 @@
     "dev": "ray develop"
   }
 }
-

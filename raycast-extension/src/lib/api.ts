@@ -8,6 +8,7 @@ export type Word = {
 
 type Preferences = {
   apiBaseUrl: string;
+  apiToken: string;
   randomCount: string;
 };
 
@@ -22,20 +23,41 @@ export function getRandomCount(): number {
   return Number.isNaN(parsed) || parsed <= 0 ? 5 : parsed;
 }
 
+function getApiToken() {
+  const { apiToken } = getPreferenceValues<Preferences>();
+  const trimmed = apiToken.trim();
+
+  if (!trimmed) {
+    throw new Error("Missing API token. Generate one in Words Book settings and paste it into Raycast preferences.");
+  }
+
+  return trimmed;
+}
+
+function getAuthHeaders() {
+  return {
+    Authorization: `Bearer ${getApiToken()}`
+  };
+}
+
 export async function fetchWords(): Promise<Word[]> {
-  const response = await fetch(`${getApiBaseUrl()}/api/words`);
+  const response = await fetch(`${getApiBaseUrl()}/api/v1/words`, {
+    headers: getAuthHeaders()
+  });
   if (!response.ok) {
-    throw new Error(`Failed to load words (${response.status})`);
+    const payload = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new Error(payload.error ?? `Failed to load words (${response.status})`);
   }
   const data = (await response.json()) as { words?: Word[] };
   return data.words ?? [];
 }
 
 export async function addWord(name: string): Promise<Word[]> {
-  const response = await fetch(`${getApiBaseUrl()}/api/words`, {
+  const response = await fetch(`${getApiBaseUrl()}/api/v1/words`, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      ...getAuthHeaders()
     },
     body: JSON.stringify({ name })
   });
@@ -48,4 +70,3 @@ export async function addWord(name: string): Promise<Word[]> {
   const data = (await response.json()) as { words?: Word[] };
   return data.words ?? [];
 }
-

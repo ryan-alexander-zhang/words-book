@@ -5,17 +5,22 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
+    "build:vercel": "prisma migrate deploy && npm run build",
+    "migrate:deploy": "prisma migrate deploy",
+    "migrate:dev": "prisma migrate dev",
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate"
   },
   "dependencies": {
-    "@radix-ui/react-slot": "1.0.2",
+    "@auth/prisma-adapter": "^2.11.1",
     "@prisma/client": "5.22.0",
+    "@radix-ui/react-slot": "1.0.2",
     "class-variance-authority": "0.7.0",
     "clsx": "2.1.1",
     "lucide-react": "0.453.0",
     "next": "14.2.11",
+    "next-auth": "^5.0.0-beta.30",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "tailwind-merge": "2.5.2",

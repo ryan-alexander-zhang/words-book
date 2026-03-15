@@ -1,22 +1,18 @@
-import { prisma } from "@/lib/prisma";
+import { WorkspaceShell } from "@/components/workspace-shell";
 import { WordManager } from "@/components/word-manager";
-import { type WordItem } from "@/lib/types";
+import { requireSessionUser } from "@/lib/session";
+import { listWordsForOwner, serializeWords } from "@/lib/words";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const words = await prisma.word.findMany({
-    orderBy: { createdAt: "desc" }
-  });
-  const serialized: WordItem[] = words.map((word) => ({
-    id: word.id,
-    name: word.name,
-    createdAt: word.createdAt.toISOString()
-  }));
+  const user = await requireSessionUser();
+  const words = await listWordsForOwner(user.id);
+  const serialized = serializeWords(words);
 
   return (
-    <main className="page-shell">
+    <WorkspaceShell currentPath="/" user={user}>
       <WordManager initialWords={serialized} />
-    </main>
+    </WorkspaceShell>
   );
 }
