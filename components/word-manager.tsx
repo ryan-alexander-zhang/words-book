@@ -172,7 +172,6 @@ export function WordManager({ initialWords }: WordManagerProps) {
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<{ tone: FeedbackTone; message: string } | null>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [activeWordId, setActiveWordId] = useState<number | null>(initialWords[0]?.id ?? null);
   const [deckCursor, setDeckCursor] = useState(0);
   const [deckVersion, setDeckVersion] = useState(0);
@@ -184,7 +183,6 @@ export function WordManager({ initialWords }: WordManagerProps) {
   useEffect(() => {
     setWords(initialWords);
     setActiveWordId(initialWords[0]?.id ?? null);
-    setSelectedIds(new Set());
     setDeckCursor(0);
     setDeckVersion(0);
   }, [initialWords]);
@@ -209,12 +207,6 @@ export function WordManager({ initialWords }: WordManagerProps) {
   }, [deferredQuery, sortOrder, words]);
 
   useEffect(() => {
-    setSelectedIds((previous) => {
-      const next = new Set(
-        Array.from(previous).filter((id) => filteredWords.some((word) => word.id === id))
-      );
-      return next.size === previous.size ? previous : next;
-    });
     setDeckCursor(0);
     if (!hasInitializedDeck.current) {
       hasInitializedDeck.current = true;
@@ -249,7 +241,6 @@ export function WordManager({ initialWords }: WordManagerProps) {
   }, [activeWordId, filteredWords, visibleDeck]);
 
   const activeWord = filteredWords.find((word) => word.id === activeWordId) ?? null;
-  const selectedCount = selectedIds.size;
   const deckCount = visibleDeck.length;
   const deckIndex = filteredWords.length === 0 ? 0 : Math.floor(deckCursor / DECK_SIZE) + 1;
   const deckTotal = Math.max(1, Math.ceil(filteredWords.length / DECK_SIZE));
@@ -267,12 +258,6 @@ export function WordManager({ initialWords }: WordManagerProps) {
       const data = (await response.json()) as { words?: WordItem[] };
       const nextWords = normalizeWords(data.words ?? []);
       setWords(nextWords);
-      setSelectedIds((previous) => {
-        const next = new Set(
-          Array.from(previous).filter((id) => nextWords.some((word) => word.id === id))
-        );
-        return next;
-      });
       setActiveWordId((previous) => {
         if (previous && nextWords.some((word) => word.id === previous)) {
           return previous;
@@ -319,46 +304,6 @@ export function WordManager({ initialWords }: WordManagerProps) {
     }
   };
 
-  const toggleSelected = (id: number) => {
-    setSelectedIds((previous) => {
-      const next = new Set(previous);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  };
-
-  const handleDeleteSelected = async () => {
-    if (selectedIds.size === 0) return;
-
-    setLoading(true);
-    setFeedback(null);
-
-    try {
-      const response = await fetch("/api/words", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: Array.from(selectedIds) })
-      });
-
-      if (!response.ok) {
-        throw new Error(await readErrorMessage(response));
-      }
-
-      setSelectedIds(new Set());
-      await refreshWords();
-    } catch (error) {
-      setLoading(false);
-      setFeedback({
-        tone: "error",
-        message: error instanceof Error ? error.message : "Unable to delete the selected words."
-      });
-    }
-  };
-
   const handleDeleteWord = async (wordId: number) => {
     setLoading(true);
     setFeedback(null);
@@ -374,11 +319,6 @@ export function WordManager({ initialWords }: WordManagerProps) {
         throw new Error(await readErrorMessage(response));
       }
 
-      setSelectedIds((previous) => {
-        const next = new Set(previous);
-        next.delete(wordId);
-        return next;
-      });
       await refreshWords();
     } catch (error) {
       setLoading(false);
@@ -406,7 +346,6 @@ export function WordManager({ initialWords }: WordManagerProps) {
         throw new Error(await readErrorMessage(response));
       }
 
-      setSelectedIds(new Set());
       await refreshWords();
     } catch (error) {
       setLoading(false);
@@ -517,11 +456,6 @@ export function WordManager({ initialWords }: WordManagerProps) {
     });
   };
 
-  const visibleWordIds = useMemo(
-    () => new Set(visibleDeck.map((word) => word.id)),
-    [visibleDeck]
-  );
-  const visibleSelectedCount = Array.from(selectedIds).filter((id) => visibleWordIds.has(id)).length;
   const workspaceStats = [
     {
       label: "Saved",
@@ -534,9 +468,9 @@ export function WordManager({ initialWords }: WordManagerProps) {
       detail: "After search and sorting"
     },
     {
-      label: "Picked",
-      value: selectedCount,
-      detail: "Ready for bulk delete"
+      label: "Spread",
+      value: `${deckIndex}/${deckTotal}`,
+      detail: `${deckCount} cards on the desk`
     }
   ];
 
@@ -648,14 +582,6 @@ export function WordManager({ initialWords }: WordManagerProps) {
                   <Download className="h-4 w-4" aria-hidden="true" />
                   Export
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleDeleteSelected}
-                  disabled={selectedCount === 0}
-                >
-                  <Trash2 className="h-4 w-4" aria-hidden="true" />
-                  Delete selected
-                </Button>
                 <Button variant="destructive" onClick={handleClearAll} disabled={words.length === 0}>
                   Clear all
                 </Button>
@@ -707,7 +633,7 @@ export function WordManager({ initialWords }: WordManagerProps) {
                     Set {deckIndex} of {deckTotal}
                   </span>
                   <span className="hidden h-1 w-1 rounded-full bg-muted-foreground sm:block" />
-                  <span>{visibleSelectedCount} selected in this spread</span>
+                  <span>{activeWord ? `Pinned: ${activeWord.name}` : "No pinned word"}</span>
                 </div>
               </div>
 
@@ -738,7 +664,6 @@ export function WordManager({ initialWords }: WordManagerProps) {
               <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3 [content-visibility:auto]">
                 {visibleDeck.map((word, index) => {
                   const isActive = word.id === activeWordId;
-                  const isSelected = selectedIds.has(word.id);
 
                   return (
                     <article
@@ -747,11 +672,17 @@ export function WordManager({ initialWords }: WordManagerProps) {
                       className={cn(
                         "word-card group relative flex min-h-[184px] flex-col justify-between rounded-[26px] border bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(247,239,229,0.92))] p-4 text-left shadow-[0_18px_44px_-28px_rgba(54,39,24,0.5)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_24px_52px_-28px_rgba(54,39,24,0.58)] sm:p-5",
                         isActive
-                          ? "border-foreground/30 ring-2 ring-foreground/10"
-                          : "border-border/70",
-                        isSelected ? "bg-[linear-gradient(180deg,rgba(255,246,239,0.98),rgba(255,233,218,0.92))]" : ""
+                          ? "border-foreground/30 bg-[linear-gradient(180deg,rgba(255,246,239,0.98),rgba(255,233,218,0.92))] ring-2 ring-foreground/10"
+                          : "border-border/70"
                       )}
                     >
+                      {isActive ? (
+                        <span className="word-pin" aria-hidden="true">
+                          <span className="word-pin__head" />
+                          <span className="word-pin__stem" />
+                        </span>
+                      ) : null}
+
                       <div className="flex items-start justify-between gap-4">
                         <button
                           type="button"
@@ -766,19 +697,6 @@ export function WordManager({ initialWords }: WordManagerProps) {
                           <h3 className="display-font mt-4 text-3xl capitalize leading-none text-foreground sm:text-[2.15rem]">
                             {word.name}
                           </h3>
-                        </button>
-
-                        <button
-                          type="button"
-                          className={cn(
-                            "inline-flex min-w-[88px] items-center justify-center rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] transition",
-                            isSelected
-                              ? "border-foreground/15 bg-foreground text-white"
-                              : "border-border/80 bg-white/75 text-muted-foreground hover:bg-white"
-                          )}
-                          onClick={() => toggleSelected(word.id)}
-                        >
-                          {isSelected ? "Picked" : "Pick"}
                         </button>
                       </div>
 
@@ -820,9 +738,6 @@ export function WordManager({ initialWords }: WordManagerProps) {
                     <span className="rounded-full border border-border/70 bg-white/70 px-3 py-1.5">
                       Added {formatTimestamp(activeWord.createdAt)}
                     </span>
-                    <span className="rounded-full border border-border/70 bg-white/70 px-3 py-1.5">
-                      {selectedIds.has(activeWord.id) ? "Selected for bulk delete" : "Not selected"}
-                    </span>
                   </div>
 
                   <div className="grid gap-2 sm:grid-cols-2">
@@ -833,12 +748,6 @@ export function WordManager({ initialWords }: WordManagerProps) {
                         <Copy className="h-4 w-4" aria-hidden="true" />
                       )}
                       {copiedWordId === activeWord.id ? "Copied" : "Copy word"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => toggleSelected(activeWord.id)}
-                    >
-                      {selectedIds.has(activeWord.id) ? "Unpick word" : "Pick word"}
                     </Button>
                     <Button
                       variant="outline"
@@ -867,7 +776,7 @@ export function WordManager({ initialWords }: WordManagerProps) {
                   <div className="space-y-1">
                     <h3 className="text-lg font-semibold text-foreground">Reference shelf</h3>
                     <p className="text-sm text-muted-foreground">
-                      Quick links are shown once here instead of repeating on every card.
+                      Quick links follow the pinned word so you can jump out without searching again.
                     </p>
                   </div>
 
@@ -875,7 +784,7 @@ export function WordManager({ initialWords }: WordManagerProps) {
                     {WORD_LINKS.map((item) => (
                       <a
                         key={item.label}
-                        href={resolveHref(item.href, activeWord.name)}
+                        href={resolveHref(item.href, activeWord.name, accent)}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center justify-between rounded-[20px] border border-border/80 bg-white px-4 py-3 text-sm font-medium text-foreground transition hover:-translate-y-0.5 hover:bg-secondary"
@@ -891,8 +800,7 @@ export function WordManager({ initialWords }: WordManagerProps) {
                   <div className="space-y-1">
                     <h3 className="text-lg font-semibold text-foreground">Pronounce</h3>
                     <p className="text-sm text-muted-foreground">
-                      Embedded with the YouGlish JavaScript widget, so you can stay in the same
-                      workspace while listening.
+                      Switch accent here, then listen from a slimmer in-page YouGlish player.
                     </p>
                   </div>
 

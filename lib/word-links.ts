@@ -19,10 +19,16 @@ export const WORD_LINKS: WordLink[] = [
   {
     label: "Collins",
     href: "https://www.collinsdictionary.com/dictionary/english/{name}"
+  },
+  {
+    label: "YouGlish",
+    href: "https://youglish.com/pronounce/{name}/english/{accent}"
   }
 ];
 
-export function resolveHref(template: string, name: string) {
+export function resolveHref(template: string, name: string, accent = "us") {
   const encodedName = encodeURIComponent(name);
-  return template.replaceAll("{name}", encodedName);
+  return template
+    .replaceAll("{name}", encodedName)
+    .replaceAll("{accent}", encodeURIComponent(accent));
 }

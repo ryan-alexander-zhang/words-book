@@ -33,7 +33,7 @@ declare global {
 }
 
 const YOUGLISH_SCRIPT_ID = "youglish-js-api";
-const YOUGLISH_COMPONENTS = 732;
+const YOUGLISH_COMPONENTS = 64;
 
 let youglishLoader: Promise<YouglishNamespace> | null = null;
 
@@ -169,7 +169,7 @@ export function PronounceWidget({ term, accent }: PronounceWidgetProps) {
   }, [accent, containerId, term]);
 
   return (
-    <div className="widget-shell relative min-h-[360px] overflow-hidden rounded-[28px] border border-border/70 bg-white/70 p-3">
+    <div className="widget-shell relative min-h-[280px] overflow-hidden rounded-[24px] border border-border/70 bg-white/70 p-3">
       {isLoading ? (
         <div className="absolute inset-0 z-10 flex items-center justify-center gap-2 bg-white/70 text-sm text-muted-foreground backdrop-blur-sm">
           <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -183,7 +183,7 @@ export function PronounceWidget({ term, accent }: PronounceWidgetProps) {
         </div>
       ) : null}
 
-      <div ref={containerRef} id={containerId} className="min-h-[332px] min-w-[200px]" />
+      <div ref={containerRef} id={containerId} className="min-h-[248px] min-w-[200px]" />
     </div>
   );
 }

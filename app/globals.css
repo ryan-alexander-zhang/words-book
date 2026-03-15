@@ -220,6 +220,20 @@ a {
   animation-play-state: paused;
 }
 
+.word-pin {
+  @apply pointer-events-none absolute right-5 top-3 z-10;
+}
+
+.word-pin__head {
+  @apply block h-5 w-5 rounded-full border border-[#c85330]/20 bg-[linear-gradient(180deg,#f47c54,#d9613b)] shadow-[0_12px_18px_-10px_rgba(146,48,21,0.85)];
+}
+
+.word-pin__stem {
+  @apply mx-auto -mt-1 block h-8 w-[3px] rounded-full bg-slate-500/85;
+  transform: rotate(18deg);
+  transform-origin: top center;
+}
+
 .widget-shell iframe {
   border-radius: 24px;
 }
