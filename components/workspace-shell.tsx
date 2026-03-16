@@ -1,9 +1,10 @@
-import Image from "next/image";
 import Link from "next/link";
-import { BookOpen, LogOut, Settings } from "lucide-react";
+import { BookOpen, LogOut, Settings2 } from "lucide-react";
 import { signOut } from "@/auth";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Separator } from "@/components/ui/separator";
 
 type WorkspaceShellProps = {
   children: React.ReactNode;
@@ -29,69 +30,63 @@ async function handleSignOut() {
 }
 
 export function WorkspaceShell({ children, currentPath, user }: WorkspaceShellProps) {
-  const userLabel = user.name || user.email || "Google account";
+  const userLabel = user.name || user.email || "Google Account";
 
   return (
-    <main className="page-shell space-y-5">
-      <header className="study-panel px-5 py-4 sm:px-6">
-        <div className="relative z-10 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
-            <Link href="/" className="brand-mark">
-              <span className="brand-mark__icon">
-                <BookOpen className="h-4 w-4" aria-hidden="true" />
+    <main id="main-content" className="page-shell">
+      <header className="flex flex-col gap-4 rounded-xl border bg-card px-4 py-4 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center">
+            <Link href="/" className="flex min-w-0 items-center gap-3">
+              <span className="flex size-10 items-center justify-center rounded-lg border bg-primary text-primary-foreground">
+                <BookOpen className="size-4" aria-hidden="true" />
               </span>
-              <span>
-                <span className="brand-mark__eyebrow">Private workspace</span>
-                <span className="brand-mark__title">Words Book</span>
-              </span>
+              <div className="flex min-w-0 flex-col gap-1">
+                <Badge variant="outline" className="w-fit">
+                  Private Workspace
+                </Badge>
+                <span className="text-lg font-semibold tracking-tight text-balance">Words Book</span>
+              </div>
             </Link>
 
-            <nav className="workspace-nav" aria-label="Workspace">
-              <Link
-                href="/"
-                className={cn("workspace-nav__link", currentPath === "/" && "workspace-nav__link--active")}
-              >
-                Workspace
-              </Link>
-              <Link
-                href="/settings"
-                className={cn(
-                  "workspace-nav__link",
-                  currentPath === "/settings" && "workspace-nav__link--active"
-                )}
-              >
-                <Settings className="h-4 w-4" aria-hidden="true" />
-                Settings
-              </Link>
+            <Separator orientation="vertical" className="hidden h-8 lg:block" />
+
+            <nav aria-label="Workspace" className="flex flex-wrap items-center gap-2">
+              <Button asChild size="sm" variant={currentPath === "/" ? "secondary" : "ghost"}>
+                <Link href="/">Workspace</Link>
+              </Button>
+              <Button asChild size="sm" variant={currentPath === "/settings" ? "secondary" : "ghost"}>
+                <Link href="/settings">
+                  <Settings2 data-icon="inline-start" aria-hidden="true" />
+                  Settings
+                </Link>
+              </Button>
             </nav>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="account-chip">
-              <span className={cn("account-chip__avatar", user.image && "account-chip__avatar--image")}>
-                {user.image ? (
-                  <Image src={user.image} alt="" fill sizes="44px" className="object-cover" aria-hidden="true" />
-                ) : (
-                  getUserInitials(user)
-                )}
-              </span>
-              <span className="min-w-0">
-                <span className="account-chip__label">Signed in with Google</span>
-                <span className="account-chip__value">{userLabel}</span>
-              </span>
+            <div className="flex min-w-0 items-center gap-3 rounded-lg border bg-muted/30 px-3 py-2">
+              <Avatar size="lg">
+                <AvatarImage src={user.image ?? undefined} alt={userLabel} />
+                <AvatarFallback>{getUserInitials(user)}</AvatarFallback>
+              </Avatar>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">{userLabel}</p>
+                <p className="truncate text-xs text-muted-foreground">Signed in with Google</p>
+              </div>
             </div>
 
             <form action={handleSignOut}>
-              <Button type="submit" variant="outline">
-                <LogOut className="h-4 w-4" aria-hidden="true" />
-                Sign out
+              <Button type="submit" variant="outline" size="sm">
+                <LogOut data-icon="inline-start" aria-hidden="true" />
+                Sign Out
               </Button>
             </form>
           </div>
         </div>
       </header>
 
-      {children}
+      <div className="flex flex-col gap-6">{children}</div>
     </main>
   );
 }

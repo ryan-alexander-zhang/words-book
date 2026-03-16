@@ -1,11 +1,20 @@
 "use client";
 
-import { type ReactNode, useState, useTransition } from "react";
-import { Check, CircleHelp, Copy, KeyRound, RefreshCw } from "lucide-react";
+import { useState, useTransition } from "react";
+import { Check, CircleAlert, CircleHelp, Copy, KeyRound, LoaderCircle, RefreshCw } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { type ApiTokenStatus } from "@/lib/types";
-import { cn } from "@/lib/utils";
 
 type TokenSettingsProps = {
   initialTokenStatus: ApiTokenStatus;
@@ -18,7 +27,7 @@ type TokenSettingsProps = {
 
 function formatDate(value: string | null) {
   if (!value) {
-    return "Not yet";
+    return "Not Yet";
   }
 
   return new Intl.DateTimeFormat("en-US", {
@@ -37,54 +46,30 @@ type FeedbackState =
     }
   | null;
 
-type InfoHintProps = {
-  align?: "left" | "right";
-  children: ReactNode;
-  label: string;
-};
-
-function InfoHint({ align = "left", children, label }: InfoHintProps) {
+function DeveloperReferenceTooltip() {
   return (
-    <div className="group relative inline-flex shrink-0">
-      <button
-        type="button"
-        aria-label={label}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border/70 bg-white/80 text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-      >
-        <CircleHelp className="h-4 w-4" aria-hidden="true" />
-      </button>
-
-      <div
-        className={cn(
-          "pointer-events-none absolute top-full z-30 mt-2 w-72 rounded-[22px] border border-border/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,239,231,0.96))] p-4 text-left text-xs leading-6 text-foreground opacity-0 shadow-[0_22px_48px_-30px_rgba(54,39,24,0.42)] transition duration-150 group-hover:opacity-100 group-focus-within:opacity-100",
-          align === "right" ? "right-0" : "left-0"
-        )}
-        role="note"
-      >
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function DeveloperReferenceHint({ align = "left" }: { align?: "left" | "right" }) {
-  return (
-    <InfoHint align={align} label="Show developer reference">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-        Developer reference
-      </p>
-      <div className="mt-2 space-y-2">
-        <p>
-          Header: <code>Authorization: Bearer &lt;token&gt;</code>
-        </p>
-        <p>
-          Endpoint: <code>/api/v1/words</code>
-        </p>
-        <p>
-          Methods: <code>GET</code> to read words, <code>POST</code> to send new words.
-        </p>
-      </div>
-    </InfoHint>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button type="button" variant="ghost" size="icon-sm" aria-label="Show developer reference">
+          <CircleHelp aria-hidden="true" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="right" sideOffset={8} className="max-w-sm">
+        <div className="flex flex-col gap-2">
+          <p className="font-medium">Developer Reference</p>
+          <p>
+            Header: <code className="rounded bg-background/80 px-1 py-0.5 font-mono">Authorization: Bearer &lt;token&gt;</code>
+          </p>
+          <p>
+            Endpoint: <code className="rounded bg-background/80 px-1 py-0.5 font-mono">/api/v1/words</code>
+          </p>
+          <p>
+            Methods: <code className="rounded bg-background/80 px-1 py-0.5 font-mono">GET</code> to read words and{" "}
+            <code className="rounded bg-background/80 px-1 py-0.5 font-mono">POST</code> to create them.
+          </p>
+        </div>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -94,8 +79,8 @@ export function TokenSettings({ initialTokenStatus, rotateTokenAction }: TokenSe
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [copied, setCopied] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const actionLabel = tokenStatus.hasToken ? "Rotate credential" : "Create credential";
-  const pendingLabel = tokenStatus.hasToken ? "Rotating..." : "Creating...";
+  const actionLabel = tokenStatus.hasToken ? "Rotate Token" : "Create Token";
+  const pendingLabel = tokenStatus.hasToken ? "Rotating…" : "Creating…";
 
   const rotateToken = () => {
     setFeedback(null);
@@ -105,18 +90,27 @@ export function TokenSettings({ initialTokenStatus, rotateTokenAction }: TokenSe
       void (async () => {
         try {
           const payload = await rotateTokenAction();
+
           if (payload.error) {
             throw new Error(payload.error);
           }
+
           if (payload.status) {
             setTokenStatus(payload.status);
           }
+
           setRevealedToken(payload.value ?? null);
+          setFeedback({
+            tone: "info",
+            message: tokenStatus.hasToken
+              ? "The token was rotated. Copy the new value before leaving this page."
+              : "The token was created. Copy the value before leaving this page."
+          });
         } catch (error) {
           setFeedback({
             tone: "error",
             message:
-              error instanceof Error ? error.message : "Unable to update the access credential."
+              error instanceof Error ? error.message : "Unable to update the access token."
           });
         }
       })();
@@ -133,7 +127,7 @@ export function TokenSettings({ initialTokenStatus, rotateTokenAction }: TokenSe
       setCopied(true);
       setFeedback({
         tone: "info",
-        message: "Access credential copied to the clipboard."
+        message: "The access token was copied to the clipboard."
       });
     } catch {
       setFeedback({
@@ -144,113 +138,112 @@ export function TokenSettings({ initialTokenStatus, rotateTokenAction }: TokenSe
   };
 
   return (
-    <section className="study-panel overflow-visible px-5 py-6 sm:px-6">
-      <div className="relative z-10 mx-auto max-w-3xl space-y-5">
-        <div className="space-y-2">
-          <span className="hero-kicker">
-            <KeyRound className="h-3.5 w-3.5" aria-hidden="true" />
-            Settings
-          </span>
-          <h1 className="display-font text-4xl leading-none tracking-tight text-foreground">
-            Access credentials
-          </h1>
-          <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
-            Create or rotate the credential that trusted tools use to access this workspace.
+    <section className="flex flex-col gap-6">
+      <div className="flex flex-col gap-3">
+        <Badge variant="outline" className="w-fit">
+          Settings
+        </Badge>
+        <div className="flex flex-col gap-2">
+          <h1 className="text-3xl font-semibold tracking-tight text-balance">Access Token</h1>
+          <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+            Create or rotate the token that trusted tools use to access your personal workspace.
           </p>
         </div>
+      </div>
 
-        <article className="settings-card space-y-5 sm:p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-                  Access credential
-                </p>
-                <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-                  {tokenStatus.hasToken ? "Active" : "Not created yet"}
-                </h2>
+      <Card>
+        <CardHeader className="gap-4">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={tokenStatus.hasToken ? "secondary" : "outline"}>
+                  {tokenStatus.hasToken ? "Active" : "Not Created"}
+                </Badge>
+                <DeveloperReferenceTooltip />
               </div>
-              <p className="max-w-xl text-sm leading-6 text-muted-foreground">
-                Applies to your current signed-in workspace.
-              </p>
+              <div className="flex flex-col gap-1">
+                <CardTitle className="text-2xl">Token Management</CardTitle>
+                <CardDescription>
+                  Applies to your current signed-in workspace and the public automation endpoint.
+                </CardDescription>
+              </div>
             </div>
 
-            <Button onClick={rotateToken} disabled={isPending} className="sm:min-w-[190px]">
-              <RefreshCw className={cn("h-4 w-4", isPending && "animate-spin")} aria-hidden="true" />
+            <Button onClick={rotateToken} disabled={isPending}>
+              {isPending ? (
+                <LoaderCircle data-icon="inline-start" className="animate-spin" aria-hidden="true" />
+              ) : (
+                <RefreshCw data-icon="inline-start" aria-hidden="true" />
+              )}
               {isPending ? pendingLabel : actionLabel}
             </Button>
           </div>
+        </CardHeader>
 
+        <CardContent className="flex flex-col gap-6">
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="settings-stat">
-              <span className="settings-stat__label">Issued</span>
-              <span className="settings-stat__value">{formatDate(tokenStatus.createdAt)}</span>
+            <div className="rounded-lg border bg-muted/30 p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Issued</p>
+              <p className="mt-2 text-sm font-medium tabular-nums">{formatDate(tokenStatus.createdAt)}</p>
             </div>
-            <div className="settings-stat">
-              <span className="settings-stat__label">Last rotated</span>
-              <span className="settings-stat__value">{formatDate(tokenStatus.rotatedAt)}</span>
+            <div className="rounded-lg border bg-muted/30 p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Last Rotated</p>
+              <p className="mt-2 text-sm font-medium tabular-nums">{formatDate(tokenStatus.rotatedAt)}</p>
             </div>
-            <div className="settings-stat">
-              <span className="settings-stat__label">Last used</span>
-              <span className="settings-stat__value">{formatDate(tokenStatus.lastUsedAt)}</span>
+            <div className="rounded-lg border bg-muted/30 p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Last Used</p>
+              <p className="mt-2 text-sm font-medium tabular-nums">{formatDate(tokenStatus.lastUsedAt)}</p>
             </div>
           </div>
 
-          <div className="settings-inline-note">
-            <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-                Visibility rule
-              </p>
-              <p className="text-sm leading-6 text-muted-foreground">
-                The credential is only shown after create or rotate. Copy it before leaving or
-                rotating again.
-              </p>
-            </div>
-            <div className="inline-flex items-center gap-2 self-start sm:self-center">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-                Developer reference
-              </span>
-              <DeveloperReferenceHint align="right" />
-            </div>
-          </div>
+          <Alert>
+            <KeyRound aria-hidden="true" />
+            <AlertTitle>Visibility Rule</AlertTitle>
+            <AlertDescription>
+              We only show the token right after create or rotate. Copy it before leaving this page or rotating it again.
+            </AlertDescription>
+          </Alert>
 
           {revealedToken ? (
-            <div className="settings-reveal">
-              <div className="space-y-1">
-                <h3 className="text-base font-semibold text-foreground">Copy credential now</h3>
-                <p className="text-sm leading-6 text-muted-foreground">
-                  Copy this now. It will not be shown again after you leave or rotate.
-                </p>
-              </div>
-
-              <div className="token-reveal-row">
-                <Input value={revealedToken} readOnly className="font-mono text-xs sm:text-sm" />
+            <Card size="sm" className="border-dashed">
+              <CardHeader className="gap-1">
+                <CardTitle>Copy the New Token</CardTitle>
+                <CardDescription>
+                  This value will not be shown again after you leave the page.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-3 sm:flex-row">
+                <Input
+                  value={revealedToken}
+                  readOnly
+                  name="revealed-token"
+                  spellCheck={false}
+                  className="font-mono text-xs sm:text-sm"
+                />
                 <Button variant="outline" onClick={() => void copyToken()}>
                   {copied ? (
-                    <Check className="h-4 w-4" aria-hidden="true" />
+                    <Check data-icon="inline-start" aria-hidden="true" />
                   ) : (
-                    <Copy className="h-4 w-4" aria-hidden="true" />
+                    <Copy data-icon="inline-start" aria-hidden="true" />
                   )}
-                  {copied ? "Copied" : "Copy"}
+                  {copied ? "Copied" : "Copy Token"}
                 </Button>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           ) : null}
 
           {feedback ? (
-            <div
-              className={cn(
-                "rounded-[20px] border px-4 py-3 text-sm",
-                feedback.tone === "error"
-                  ? "border-destructive/30 bg-destructive/10 text-destructive"
-                  : "border-border/70 bg-white/70 text-muted-foreground"
-              )}
+            <Alert
+              variant={feedback.tone === "error" ? "destructive" : "default"}
+              aria-live="polite"
             >
-              {feedback.message}
-            </div>
+              <CircleAlert aria-hidden="true" />
+              <AlertTitle>{feedback.tone === "error" ? "Token Update Failed" : "Token Updated"}</AlertTitle>
+              <AlertDescription>{feedback.message}</AlertDescription>
+            </Alert>
           ) : null}
-        </article>
-      </div>
+        </CardContent>
+      </Card>
     </section>
   );
 }

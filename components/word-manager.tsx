@@ -1,29 +1,52 @@
 "use client";
 
-import {
-  type CSSProperties,
-  startTransition,
-  useDeferredValue,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from "react";
-import {
-  ArrowRight,
-  Check,
-  Copy,
-  Download,
-  RefreshCw,
-  Sparkles,
-  Trash2,
-  Upload
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { type WordItem } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { Check, CircleAlert, Copy, Download, ExternalLink, FileUp, Info, LoaderCircle, Plus, Trash2 } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { type WordsMutationResult } from "@/app/actions/words";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card";
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table";
+import { type WordItem } from "@/lib/types";
 import {
   WORD_VALIDATION_HELP_TEXT,
   getWordValidationError,
@@ -42,7 +65,7 @@ interface WordManagerProps {
 
 type SortOrder = "desc" | "asc";
 type FeedbackTone = "error" | "info";
-const DECK_SIZE = 12;
+
 const IMPORT_FILE_SIZE_LIMIT_BYTES = 4 * 1024 * 1024;
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
@@ -57,32 +80,7 @@ const relativeTimeFormatter = new Intl.RelativeTimeFormat("en", {
   numeric: "auto"
 });
 
-function createSeededRandom(seed: number) {
-  let value = seed >>> 0;
-
-  return () => {
-    value += 0x6D2B79F5;
-    let next = value;
-    next = Math.imul(next ^ (next >>> 15), next | 1);
-    next ^= next + Math.imul(next ^ (next >>> 7), next | 61);
-    return ((next ^ (next >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function shuffleWords(words: WordItem[], salt = 0) {
-  const copy = [...words];
-  const seed = words.reduce(
-    (current, word, index) => current ^ Math.imul(word.id + index + 1, 2654435761),
-    Math.imul(salt + 1, 2246822519)
-  );
-  const random = createSeededRandom(seed);
-
-  for (let index = copy.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(random() * (index + 1));
-    [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
-  }
-  return copy;
-}
+const numberFormatter = new Intl.NumberFormat("en-US");
 
 function normalizeWords(list: WordItem[]) {
   return list.map((item) => ({
@@ -127,6 +125,7 @@ function formatTimestamp(timestamp: string) {
 
 function formatExportTimestamp(date: Date) {
   const pad = (value: number) => value.toString().padStart(2, "0");
+
   return [
     date.getFullYear(),
     pad(date.getMonth() + 1),
@@ -158,49 +157,77 @@ function extractNames(payload: unknown) {
       if (item && typeof item === "object" && "name" in item) {
         return (item as { name?: string }).name ?? "";
       }
+
       return "";
     })
     .map((item) => item.trim().toLowerCase())
     .filter(Boolean);
 }
 
-function getCardStyle(wordId: number, index: number) {
-  const rotations = [-2, 1, -1, 2, -2, 1, 2, -1];
-  const rotation = rotations[(wordId + index) % rotations.length];
-  const duration = 11 + ((wordId + index) % 5) * 2;
-  const delay = ((wordId + index) % 6) * 0.3;
-
-  return {
-    "--card-rotate": `${rotation}deg`,
-    "--drift-duration": `${duration}s`,
-    "--card-delay": `${delay}s`
-  } as CSSProperties;
-}
-
 export function WordManager({ initialWords, mutateWordsAction }: WordManagerProps) {
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
+  const router = useRouter();
+  const pathname = usePathname();
   const [words, setWords] = useState<WordItem[]>(initialWords);
   const [draftWord, setDraftWord] = useState("");
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(searchParams.get("q") ?? "");
+  const [sortOrder, setSortOrder] = useState<SortOrder>(searchParams.get("sort") === "asc" ? "asc" : "desc");
   const deferredQuery = useDeferredValue(query);
-  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<{ tone: FeedbackTone; message: string } | null>(null);
   const [activeWordId, setActiveWordId] = useState<number | null>(initialWords[0]?.id ?? null);
-  const [deckCursor, setDeckCursor] = useState(0);
-  const [deckVersion, setDeckVersion] = useState(0);
   const [copiedWordId, setCopiedWordId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const hasInitializedDeck = useRef(false);
 
   useEffect(() => {
     setWords(initialWords);
     setActiveWordId(initialWords[0]?.id ?? null);
-    setDeckCursor(0);
-    setDeckVersion(0);
   }, [initialWords]);
 
   useEffect(() => {
+    const nextQuery = searchParams.get("q") ?? "";
+    const nextSort = searchParams.get("sort") === "asc" ? "asc" : "desc";
+
+    if (nextQuery !== query) {
+      setQuery(nextQuery);
+    }
+
+    if (nextSort !== sortOrder) {
+      setSortOrder(nextSort);
+    }
+  }, [query, searchParams, searchParamsString, sortOrder]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchParamsString);
+    const trimmedQuery = query.trim();
+
+    if (trimmedQuery) {
+      params.set("q", trimmedQuery);
+    } else {
+      params.delete("q");
+    }
+
+    if (sortOrder === "asc") {
+      params.set("sort", sortOrder);
+    } else {
+      params.delete("sort");
+    }
+
+    const nextSearch = params.toString();
+
+    if (nextSearch !== searchParamsString) {
+      startTransition(() => {
+        router.replace(nextSearch ? `${pathname}?${nextSearch}` : pathname, {
+          scroll: false
+        });
+      });
+    }
+  }, [pathname, query, router, searchParamsString, sortOrder]);
+
+  useEffect(() => {
     if (!copiedWordId) return;
+
     const timeout = window.setTimeout(() => setCopiedWordId(null), 1800);
     return () => window.clearTimeout(timeout);
   }, [copiedWordId]);
@@ -219,27 +246,6 @@ export function WordManager({ initialWords, mutateWordsAction }: WordManagerProp
   }, [deferredQuery, sortOrder, words]);
 
   useEffect(() => {
-    setDeckCursor(0);
-    if (!hasInitializedDeck.current) {
-      hasInitializedDeck.current = true;
-      return;
-    }
-    setDeckVersion((previous) => previous + 1);
-  }, [filteredWords]);
-
-  const deckWords = useMemo(
-    () => shuffleWords(filteredWords, deckVersion),
-    [filteredWords, deckVersion]
-  );
-
-  const visibleDeck = useMemo(() => {
-    if (deckWords.length <= DECK_SIZE) {
-      return deckWords;
-    }
-    return deckWords.slice(deckCursor, deckCursor + DECK_SIZE);
-  }, [deckCursor, deckWords]);
-
-  useEffect(() => {
     if (filteredWords.length === 0) {
       setActiveWordId(null);
       return;
@@ -249,13 +255,10 @@ export function WordManager({ initialWords, mutateWordsAction }: WordManagerProp
       return;
     }
 
-    setActiveWordId(visibleDeck[0]?.id ?? filteredWords[0]?.id ?? null);
-  }, [activeWordId, filteredWords, visibleDeck]);
+    setActiveWordId(filteredWords[0]?.id ?? null);
+  }, [activeWordId, filteredWords]);
 
   const activeWord = filteredWords.find((word) => word.id === activeWordId) ?? null;
-  const deckCount = visibleDeck.length;
-  const deckIndex = filteredWords.length === 0 ? 0 : Math.floor(deckCursor / DECK_SIZE) + 1;
-  const deckTotal = Math.max(1, Math.ceil(filteredWords.length / DECK_SIZE));
 
   const applyWords = (nextWords: WordItem[]) => {
     setWords(nextWords);
@@ -270,8 +273,10 @@ export function WordManager({ initialWords, mutateWordsAction }: WordManagerProp
 
   const handleAdd = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
     const trimmed = draftWord.trim();
     const validationError = getWordValidationError(trimmed);
+
     if (validationError) {
       setFeedback({
         tone: "error",
@@ -286,6 +291,10 @@ export function WordManager({ initialWords, mutateWordsAction }: WordManagerProp
     try {
       setDraftWord("");
       applyWords(readWordsResult(await mutateWordsAction({ type: "add", name: trimmed })));
+      setFeedback({
+        tone: "info",
+        message: `Added “${trimmed}” to your workspace.`
+      });
     } catch (error) {
       setFeedback({
         tone: "error",
@@ -301,7 +310,12 @@ export function WordManager({ initialWords, mutateWordsAction }: WordManagerProp
     setFeedback(null);
 
     try {
+      const deletedWord = words.find((word) => word.id === wordId)?.name ?? "The word";
       applyWords(readWordsResult(await mutateWordsAction({ type: "delete", ids: [wordId] })));
+      setFeedback({
+        tone: "info",
+        message: `Removed “${deletedWord}” from your workspace.`
+      });
     } catch (error) {
       setFeedback({
         tone: "error",
@@ -320,10 +334,14 @@ export function WordManager({ initialWords, mutateWordsAction }: WordManagerProp
 
     try {
       applyWords(readWordsResult(await mutateWordsAction({ type: "clear" })));
+      setFeedback({
+        tone: "info",
+        message: "All words were removed from your workspace."
+      });
     } catch (error) {
       setFeedback({
         tone: "error",
-        message: error instanceof Error ? error.message : "Unable to clear the shelf."
+        message: error instanceof Error ? error.message : "Unable to clear the workspace."
       });
     } finally {
       setLoading(false);
@@ -338,7 +356,7 @@ export function WordManager({ initialWords, mutateWordsAction }: WordManagerProp
 
       setFeedback({
         tone: "error",
-        message: "File is too large. Import a JSON file up to 4MB."
+        message: "File is too large. Import a JSON file up to 4 MB."
       });
       return;
     }
@@ -350,6 +368,7 @@ export function WordManager({ initialWords, mutateWordsAction }: WordManagerProp
       const payload = JSON.parse(await file.text()) as unknown;
       const names = extractNames(payload);
       const validationError = getWordsValidationError(names);
+
       if (validationError) {
         if (fileInputRef.current) {
           fileInputRef.current.value = "";
@@ -378,6 +397,10 @@ export function WordManager({ initialWords, mutateWordsAction }: WordManagerProp
       }
 
       applyWords(readWordsResult(await mutateWordsAction({ type: "import", names: uniqueNames })));
+      setFeedback({
+        tone: "info",
+        message: `${numberFormatter.format(uniqueNames.length)} word${uniqueNames.length === 1 ? "" : "s"} were imported.`
+      });
     } catch (error) {
       setFeedback({
         tone: "error",
@@ -406,7 +429,7 @@ export function WordManager({ initialWords, mutateWordsAction }: WordManagerProp
       setCopiedWordId(word.id);
       setFeedback({
         tone: "info",
-        message: `Copied "${word.name}" to the clipboard.`
+        message: `Copied “${word.name}” to the clipboard.`
       });
     } catch {
       setFeedback({
@@ -416,399 +439,418 @@ export function WordManager({ initialWords, mutateWordsAction }: WordManagerProp
     }
   };
 
-  const handleNextDeck = () => {
-    if (filteredWords.length <= DECK_SIZE) return;
-
-    const nextCursor = deckCursor + DECK_SIZE;
-
-    startTransition(() => {
-      if (nextCursor >= deckWords.length) {
-        setDeckCursor(0);
-        setDeckVersion((previous) => previous + 1);
-        setActiveWordId(null);
-        return;
-      }
-
-      const nextDeck = deckWords.slice(nextCursor, nextCursor + DECK_SIZE);
-      setDeckCursor(nextCursor);
-      if (!nextDeck.some((word) => word.id === activeWordId)) {
-        setActiveWordId(nextDeck[0]?.id ?? null);
-      }
-    });
-  };
-
-  const handleReshuffle = () => {
-    startTransition(() => {
-      setDeckCursor(0);
-      setDeckVersion((previous) => previous + 1);
-      setActiveWordId(null);
-    });
-  };
-
   const workspaceStats = [
     {
       label: "Saved",
-      value: words.length,
-      detail: "Total words on the shelf"
+      value: numberFormatter.format(words.length),
+      detail: "Words in your workspace"
     },
     {
-      label: "Match",
-      value: filteredWords.length,
-      detail: "After search and sorting"
+      label: "Showing",
+      value: numberFormatter.format(filteredWords.length),
+      detail: query.trim() ? "Matching current filters" : "Visible right now"
     },
     {
-      label: "Spread",
-      value: `${deckIndex}/${deckTotal}`,
-      detail: `${deckCount} cards on the desk`
+      label: "Selected",
+      value: activeWord ? "Ready" : "None",
+      detail: activeWord ? "Detail actions are available" : "Choose a word to continue"
     }
   ];
 
+  const emptyStateTitle = words.length === 0 ? "No words saved yet." : "No matching words.";
+  const emptyStateDescription = words.length === 0
+    ? "Add your first word, or import a JSON file to populate the workspace."
+    : "Adjust your search or sort to bring matching words back into view.";
+
   return (
-    <div className="space-y-5">
-      <section className="study-panel px-5 py-5 sm:px-6 sm:py-6">
-        <div className="relative z-10 space-y-5">
-          <div className="workbench-header">
-            <div className="workbench-heading">
-              <span className="hero-kicker">
-                <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-                Focused vocabulary desk
-              </span>
-              <div className="space-y-2">
-                <h1 className="display-font text-3xl leading-none tracking-tight text-foreground sm:text-[2.75rem]">
-                  Vocabulary desk
-                </h1>
-                <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
-                  Add, scan, sort, and keep one word in focus from the same compact workspace.
-                </p>
-              </div>
-            </div>
-
-            <div className="workbench-stats">
-              {workspaceStats.map((item) => (
-                <div key={item.label} className="stat-chip">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-muted-foreground">
-                    {item.label}
-                  </p>
-                  <p className="mt-3 text-3xl font-semibold leading-none text-foreground">
-                    {item.value}
-                  </p>
-                  <p className="mt-2 text-sm leading-5 text-muted-foreground">{item.detail}</p>
-                </div>
-              ))}
-            </div>
+    <section className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex max-w-2xl flex-col gap-3">
+          <Badge variant="outline" className="w-fit">
+            Workspace
+          </Badge>
+          <div className="flex flex-col gap-2">
+            <h1 className="text-3xl font-semibold tracking-tight text-balance">Vocabulary Workspace</h1>
+            <p className="text-sm leading-6 text-muted-foreground">
+              Add new words, search your saved list, and keep one reference panel open while you study.
+            </p>
           </div>
+        </div>
 
-          <div className="workbench-console">
-            <form onSubmit={handleAdd} className="space-y-4">
-              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)_180px_160px] lg:items-end">
-                <label htmlFor="word-input" className="control-field">
-                  <span className="control-label">Add word</span>
-                  <Input
-                    id="word-input"
-                    className="h-12"
-                    placeholder="for example: serendipity"
-                    value={draftWord}
-                    onChange={(event) => setDraftWord(event.target.value)}
-                    minLength={1}
-                    required
-                  />
-                </label>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {workspaceStats.map((item) => (
+            <div key={item.label} className="rounded-xl border bg-card p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{item.label}</p>
+              <p className="mt-2 text-2xl font-semibold tracking-tight tabular-nums">{item.value}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{item.detail}</p>
+            </div>
+          ))}
+        </div>
+      </div>
 
-                <label htmlFor="search-words" className="control-field">
-                  <span className="control-label">Search shelf</span>
-                  <Input
-                    id="search-words"
-                    className="h-12"
-                    placeholder="Search words"
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                      }
-                    }}
-                  />
-                </label>
+      <Card>
+        <CardHeader className="gap-1">
+          <CardTitle>Add, Search & Import</CardTitle>
+          <CardDescription>
+            {WORD_VALIDATION_HELP_TEXT} Imported entries are stored in lowercase and duplicates are ignored.
+          </CardDescription>
+        </CardHeader>
 
-                <label className="control-field">
-                  <span className="control-label">Sort</span>
-                  <select
-                    className="control-select"
-                    value={sortOrder}
-                    onChange={(event) => setSortOrder(event.target.value as SortOrder)}
-                  >
-                    <option value="desc">Newest first</option>
-                    <option value="asc">Oldest first</option>
-                  </select>
-                </label>
+        <CardContent className="flex flex-col gap-5">
+          <form onSubmit={handleAdd} className="flex flex-col gap-5">
+            <FieldGroup className="lg:grid lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)_180px_160px] lg:items-end">
+              <Field>
+                <FieldLabel htmlFor="word-input">Add Word</FieldLabel>
+                <Input
+                  id="word-input"
+                  name="word"
+                  value={draftWord}
+                  placeholder="serendipity…"
+                  autoComplete="off"
+                  spellCheck={false}
+                  onChange={(event) => setDraftWord(event.target.value)}
+                  minLength={1}
+                  required
+                />
+              </Field>
 
-                <div className="control-field">
-                  <span className="control-label">Commit</span>
-                  <Button type="submit" size="lg" className="w-full" disabled={loading}>
-                    {loading ? "Saving..." : "Add word"}
-                  </Button>
-                </div>
-              </div>
-            </form>
-
-            <div className="workbench-actions-row">
-              <p className="workbench-note">
-                Import JSON up to 4MB. {WORD_VALIDATION_HELP_TEXT} Entries are saved in lowercase
-                and duplicates are ignored.
-              </p>
-
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setFeedback(null);
-                    fileInputRef.current?.click();
+              <Field>
+                <FieldLabel htmlFor="search-words">Search</FieldLabel>
+                <Input
+                  id="search-words"
+                  name="query"
+                  value={query}
+                  placeholder="Search words…"
+                  autoComplete="off"
+                  spellCheck={false}
+                  onChange={(event) => setQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                    }
                   }}
-                >
-                  <Upload className="h-4 w-4" aria-hidden="true" />
-                  Import
+                />
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="sort-words">Sort</FieldLabel>
+                <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as SortOrder)}>
+                  <SelectTrigger id="sort-words" className="w-full">
+                    <SelectValue placeholder="Sort words" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="desc">Newest First</SelectItem>
+                      <SelectItem value="asc">Oldest First</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="add-word-submit">Save Word</FieldLabel>
+                <Button id="add-word-submit" type="submit" className="w-full" disabled={loading}>
+                  {loading ? (
+                    <LoaderCircle data-icon="inline-start" className="animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Plus data-icon="inline-start" aria-hidden="true" />
+                  )}
+                  {loading ? "Saving…" : "Add Word"}
                 </Button>
-                <Button variant="outline" onClick={handleExport} disabled={filteredWords.length === 0}>
-                  <Download className="h-4 w-4" aria-hidden="true" />
-                  Export
-                </Button>
-                <Button variant="destructive" onClick={handleClearAll} disabled={words.length === 0}>
-                  Clear all
-                </Button>
-              </div>
+              </Field>
+            </FieldGroup>
+          </form>
+
+          <Separator />
+
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex max-w-2xl flex-col gap-1">
+              <p className="text-sm leading-6 text-muted-foreground">
+                Import a JSON file up to 4 MB, export the current result set, or clear the workspace after confirmation.
+              </p>
+              <FieldDescription>
+                Use search and sort to narrow the exported data set before downloading it.
+              </FieldDescription>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setFeedback(null);
+                  fileInputRef.current?.click();
+                }}
+                disabled={loading}
+              >
+                <FileUp data-icon="inline-start" aria-hidden="true" />
+                Import
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleExport}
+                disabled={filteredWords.length === 0}
+              >
+                <Download data-icon="inline-start" aria-hidden="true" />
+                Export
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button type="button" variant="destructive" disabled={words.length === 0 || loading}>
+                    <Trash2 data-icon="inline-start" aria-hidden="true" />
+                    Clear All
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent size="sm">
+                  <AlertDialogHeader>
+                    <AlertDialogMedia className="bg-destructive/10 text-destructive dark:bg-destructive/20">
+                      <Trash2 aria-hidden="true" />
+                    </AlertDialogMedia>
+                    <AlertDialogTitle>Clear the entire workspace?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This removes every saved word from your personal workspace. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel variant="ghost">Cancel</AlertDialogCancel>
+                    <AlertDialogAction variant="destructive" onClick={() => void handleClearAll()}>
+                      Clear Workspace
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
 
-          <Input
+          <input
             ref={fileInputRef}
             type="file"
             accept="application/json"
             className="hidden"
             onChange={(event) => {
               const file = event.target.files?.[0];
-              if (!file) return;
+
+              if (!file) {
+                return;
+              }
+
               void handleImport(file);
             }}
           />
 
           {feedback ? (
-            <div
-              className={cn(
-                "rounded-[24px] border px-4 py-3 text-sm",
-                feedback.tone === "error"
-                  ? "border-destructive/30 bg-destructive/10 text-destructive"
-                  : "border-border/70 bg-white/70 text-muted-foreground"
-              )}
+            <Alert
+              variant={feedback.tone === "error" ? "destructive" : "default"}
+              aria-live="polite"
             >
-              {feedback.message}
-            </div>
+              {feedback.tone === "error" ? <CircleAlert aria-hidden="true" /> : <Info aria-hidden="true" />}
+              <AlertTitle>{feedback.tone === "error" ? "Action Failed" : "Workspace Updated"}</AlertTitle>
+              <AlertDescription>{feedback.message}</AlertDescription>
+            </Alert>
           ) : null}
-        </div>
-      </section>
+        </CardContent>
+      </Card>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_380px]">
-        <section className="study-panel px-5 py-6 sm:px-6">
-          <div className="relative z-10 space-y-4">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.32em] text-muted-foreground">
-                  Card deck
-                </p>
-                <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                  <span>
-                    Showing {deckCount} of {filteredWords.length} matching words
-                  </span>
-                  <span className="hidden h-1 w-1 rounded-full bg-muted-foreground sm:block" />
-                  <span>
-                    Set {deckIndex} of {deckTotal}
-                  </span>
-                  <span className="hidden h-1 w-1 rounded-full bg-muted-foreground sm:block" />
-                  <span>{activeWord ? `Pinned: ${activeWord.name}` : "No pinned word"}</span>
-                </div>
-              </div>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_360px]">
+        <Card className="min-w-0">
+          <CardHeader className="gap-2">
+            <CardAction>
+              <Badge variant="outline">
+                {numberFormatter.format(filteredWords.length)} Result{filteredWords.length === 1 ? "" : "s"}
+              </Badge>
+            </CardAction>
+            <CardTitle>Word List</CardTitle>
+            <CardDescription>
+              {query.trim()
+                ? `Showing matches for “${query.trim()}”.`
+                : "Browse your saved words and open one in the detail panel."}
+            </CardDescription>
+          </CardHeader>
 
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" onClick={handleReshuffle} disabled={filteredWords.length === 0}>
-                  <RefreshCw className="h-4 w-4" aria-hidden="true" />
-                  Reshuffle
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleNextDeck}
-                  disabled={filteredWords.length <= DECK_SIZE}
-                >
-                  Next spread
-                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                </Button>
-              </div>
-            </div>
-
-            {visibleDeck.length === 0 ? (
-              <div className="rounded-[28px] border border-dashed border-border/80 bg-white/60 px-6 py-12 text-center">
-                <h2 className="display-font text-3xl text-foreground">The desk is empty.</h2>
-                <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                  Add your first word above or clear the search field to bring matching cards back.
+          <CardContent>
+            {filteredWords.length === 0 ? (
+              <div className="flex flex-col gap-2 rounded-lg border border-dashed bg-muted/20 px-4 py-10 text-center">
+                <h2 className="text-xl font-semibold tracking-tight">{emptyStateTitle}</h2>
+                <p className="mx-auto max-w-xl text-sm leading-6 text-muted-foreground">
+                  {emptyStateDescription}
                 </p>
               </div>
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3 [content-visibility:auto]">
-                {visibleDeck.map((word, index) => {
-                  const isActive = word.id === activeWordId;
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Word</TableHead>
+                    <TableHead className="hidden md:table-cell">Added</TableHead>
+                    <TableHead className="w-[120px] text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="[content-visibility:auto]">
+                  {filteredWords.map((word) => {
+                    const isActive = word.id === activeWordId;
 
-                  return (
-                    <article
-                      key={word.id}
-                      style={getCardStyle(word.id, index)}
-                      className={cn(
-                        "word-card group relative flex min-h-[184px] flex-col justify-between rounded-[26px] border bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(247,239,229,0.92))] p-4 text-left shadow-[0_18px_44px_-28px_rgba(54,39,24,0.5)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_24px_52px_-28px_rgba(54,39,24,0.58)] sm:p-5",
-                        isActive
-                          ? "border-foreground/30 bg-[linear-gradient(180deg,rgba(255,246,239,0.98),rgba(255,233,218,0.92))] ring-2 ring-foreground/10"
-                          : "border-border/70"
-                      )}
-                    >
-                      {isActive ? (
-                        <span className="word-pin" aria-hidden="true">
-                          <span className="word-pin__head" />
-                          <span className="word-pin__stem" />
-                        </span>
-                      ) : null}
-
-                      <div className="flex items-start justify-between gap-4">
-                        <button
-                          type="button"
-                          className="flex-1 text-left"
-                          onClick={() => {
-                            startTransition(() => setActiveWordId(word.id));
-                          }}
-                        >
-                          <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground">
-                            Focus word
-                          </p>
-                          <h3 className="display-font mt-4 text-3xl capitalize leading-none text-foreground sm:text-[2.15rem]">
-                            {word.name}
-                          </h3>
-                        </button>
-                      </div>
-
-                      <button
-                        type="button"
-                        className="mt-8 flex items-center justify-between rounded-[20px] border border-border/60 bg-white/65 px-4 py-3 text-sm text-muted-foreground transition hover:bg-white/90"
-                        onClick={() => {
-                          startTransition(() => setActiveWordId(word.id));
-                        }}
-                      >
-                        <span suppressHydrationWarning>
-                          Added {formatRelativeTime(word.createdAt)}
-                        </span>
-                        <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" aria-hidden="true" />
-                      </button>
-                    </article>
-                  );
-                })}
-              </div>
+                    return (
+                      <TableRow key={word.id} data-state={isActive ? "selected" : undefined}>
+                        <TableCell className="min-w-0 whitespace-normal">
+                          <button
+                            type="button"
+                            className="flex w-full min-w-0 flex-col gap-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            onClick={() => setActiveWordId(word.id)}
+                          >
+                            <span className="break-words text-sm font-medium">{word.name}</span>
+                            <span className="text-xs text-muted-foreground md:hidden">
+                              Added {formatRelativeTime(word.createdAt)}
+                            </span>
+                          </button>
+                        </TableCell>
+                        <TableCell className="hidden whitespace-normal text-sm text-muted-foreground md:table-cell">
+                          <div className="flex flex-col gap-1">
+                            <span className="tabular-nums">{formatRelativeTime(word.createdAt)}</span>
+                            <span className="text-xs tabular-nums">{formatTimestamp(word.createdAt)}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            type="button"
+                            variant={isActive ? "secondary" : "ghost"}
+                            size="sm"
+                            onClick={() => setActiveWordId(word.id)}
+                          >
+                            {isActive ? "Selected" : "Open"}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             )}
-          </div>
-        </section>
+          </CardContent>
+        </Card>
 
-        <aside className="study-panel px-5 py-6 sm:px-6 xl:sticky xl:top-6 xl:self-start">
-          <div className="relative z-10 space-y-4">
-            {activeWord ? (
-              <>
-                <div className="space-y-4 rounded-[28px] border border-border/70 bg-white/70 p-4">
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold uppercase tracking-[0.32em] text-muted-foreground">
-                      Spotlight
-                    </p>
-                    <h2 className="display-font text-5xl capitalize leading-none text-foreground">
-                      {activeWord.name}
-                    </h2>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
-                    <span className="rounded-full border border-border/70 bg-white/70 px-3 py-1.5">
+        <div className="flex flex-col gap-4 xl:sticky xl:top-6 xl:self-start">
+          {activeWord ? (
+            <>
+              <Card>
+                <CardHeader className="gap-3">
+                  <Badge variant="secondary" className="w-fit">
+                    Selected Word
+                  </Badge>
+                  <div className="flex flex-col gap-1">
+                    <CardTitle className="break-words text-2xl tracking-tight">{activeWord.name}</CardTitle>
+                    <CardDescription className="tabular-nums">
                       Added {formatTimestamp(activeWord.createdAt)}
-                    </span>
+                    </CardDescription>
                   </div>
-
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <Button variant="outline" onClick={() => void handleCopy(activeWord)}>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button type="button" variant="outline" onClick={() => void handleCopy(activeWord)}>
                       {copiedWordId === activeWord.id ? (
-                        <Check className="h-4 w-4" aria-hidden="true" />
+                        <Check data-icon="inline-start" aria-hidden="true" />
                       ) : (
-                        <Copy className="h-4 w-4" aria-hidden="true" />
+                        <Copy data-icon="inline-start" aria-hidden="true" />
                       )}
-                      {copiedWordId === activeWord.id ? "Copied" : "Copy word"}
+                      {copiedWordId === activeWord.id ? "Copied" : "Copy Word"}
                     </Button>
+
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button type="button" variant="destructive" disabled={loading}>
+                          <Trash2 data-icon="inline-start" aria-hidden="true" />
+                          Delete Word
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent size="sm">
+                        <AlertDialogHeader>
+                          <AlertDialogMedia className="bg-destructive/10 text-destructive dark:bg-destructive/20">
+                            <Trash2 aria-hidden="true" />
+                          </AlertDialogMedia>
+                          <AlertDialogTitle>Delete “{activeWord.name}”?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This removes the word from your workspace and cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel variant="ghost">Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            variant="destructive"
+                            onClick={() => void handleDeleteWord(activeWord.id)}
+                          >
+                            Delete Word
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="gap-1">
+                  <CardTitle>Reference Links</CardTitle>
+                  <CardDescription>
+                    Open a dictionary or reference page without re-entering the current word.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-2">
+                  {WORD_LINKS.map((item) => (
                     <Button
-                      variant="destructive"
-                      onClick={() => void handleDeleteWord(activeWord.id)}
+                      key={item.label}
+                      asChild
+                      variant="outline"
+                      className="w-full justify-between"
                     >
-                      <Trash2 className="h-4 w-4" aria-hidden="true" />
-                      Delete word
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="space-y-3 rounded-[28px] border border-border/70 bg-white/70 p-4">
-                  <div className="space-y-1">
-                    <h3 className="text-lg font-semibold text-foreground">Reference shelf</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Quick links follow the pinned word so you can jump out without searching again.
-                    </p>
-                  </div>
-
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {WORD_LINKS.map((item) => (
-                      <a
-                        key={item.label}
-                        href={resolveHref(item.href, activeWord.name)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center justify-between rounded-[20px] border border-border/80 bg-white px-4 py-3 text-sm font-medium text-foreground transition hover:-translate-y-0.5 hover:bg-secondary"
-                      >
-                        <span>{item.label}</span>
-                        <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                      <a href={resolveHref(item.href, activeWord.name)} target="_blank" rel="noreferrer">
+                        {item.label}
+                        <ExternalLink data-icon="inline-end" aria-hidden="true" />
                       </a>
-                    ))}
-                  </div>
-                </div>
+                    </Button>
+                  ))}
+                </CardContent>
+              </Card>
 
-                <div className="space-y-3 rounded-[28px] border border-border/70 bg-white/70 p-4">
-                  <div className="space-y-1">
-                    <h3 className="text-lg font-semibold text-foreground">Pronounce</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Choose an accent to open the matching YouGlish pronunciation page.
-                    </p>
-                  </div>
-
-                  <div className="grid gap-2 sm:grid-cols-3">
-                    {YOUGLISH_ACCENTS.map((option) => (
+              <Card>
+                <CardHeader className="gap-1">
+                  <CardTitle>Pronunciation</CardTitle>
+                  <CardDescription>
+                    Jump to YouGlish with the accent you want to hear.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-2 sm:grid-cols-3 xl:grid-cols-1">
+                  {YOUGLISH_ACCENTS.map((option) => (
+                    <Button
+                      key={option.value}
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="justify-between"
+                    >
                       <a
-                        key={option.value}
                         href={resolveYouglishPronounceHref(activeWord.name, option.value)}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center justify-center gap-2 rounded-full border border-border/80 bg-white px-3 py-2 text-sm font-medium text-foreground transition hover:-translate-y-0.5 hover:bg-secondary"
                       >
-                        <span>{option.label}</span>
-                        <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                        {option.label}
+                        <ExternalLink data-icon="inline-end" aria-hidden="true" />
                       </a>
-                    ))}
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="rounded-[28px] border border-dashed border-border/70 bg-white/70 px-6 py-12 text-center">
-                <h2 className="display-font text-3xl text-foreground">No focus word yet.</h2>
-                <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                  Add a word or open a matching card to activate pronunciation links and the
-                  reference shelf.
-                </p>
-              </div>
-            )}
-          </div>
-        </aside>
+                    </Button>
+                  ))}
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <Card>
+              <CardHeader className="gap-1">
+                <CardTitle>No Word Selected</CardTitle>
+                <CardDescription>
+                  Choose a word from the list to open copy, delete, reference, and pronunciation actions.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          )}
+        </div>
       </div>
-    </div>
+    </section>
   );
 }

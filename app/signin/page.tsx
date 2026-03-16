@@ -1,7 +1,15 @@
 import { redirect } from "next/navigation";
 import { ArrowRight, BookOpen, LockKeyhole } from "lucide-react";
 import { signIn } from "@/auth";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader
+} from "@/components/ui/card";
 import { getSessionUser } from "@/lib/session";
 
 async function handleGoogleSignIn() {
@@ -20,39 +28,43 @@ export default async function SignInPage() {
   }
 
   return (
-    <main className="page-shell flex min-h-screen items-center justify-center">
-      <section className="study-panel w-full max-w-xl px-5 py-8 sm:px-8 sm:py-10">
-        <div className="relative z-10 mx-auto flex max-w-md flex-col items-center text-center">
-          <span className="inline-flex items-center gap-3 rounded-full border border-border/75 bg-white/85 px-4 py-2 shadow-[0_16px_34px_-28px_rgba(54,39,24,0.44)]">
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
-              <BookOpen className="h-4 w-4" aria-hidden="true" />
+    <main id="main-content" className="page-shell items-center justify-center">
+      <Card className="w-full max-w-md">
+        <CardHeader className="gap-3">
+          <div className="flex items-center gap-3">
+            <span className="flex size-10 items-center justify-center rounded-lg border bg-primary text-primary-foreground">
+              <BookOpen className="size-4" aria-hidden="true" />
             </span>
-            <span className="text-left">
-              <span className="block text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">
+            <div className="flex flex-col gap-1">
+              <Badge variant="outline" className="w-fit">
                 Words Book
-              </span>
-              <span className="block text-sm font-semibold text-foreground">Private workspace</span>
-            </span>
-          </span>
-
-          <div className="mt-10 space-y-4">
-            <h1 className="display-font text-5xl leading-none tracking-tight text-foreground sm:text-6xl">
-              Enter your workspace
-            </h1>
-            <p className="text-base leading-7 text-muted-foreground">
-              One account. One personal library.
-            </p>
+              </Badge>
+              <h1 className="text-xl font-semibold tracking-tight text-balance">
+                Sign in to your private workspace
+              </h1>
+            </div>
           </div>
+          <CardDescription>
+            Use your Google account to manage saved words, pronunciation links, and personal API access.
+          </CardDescription>
+        </CardHeader>
 
-          <form action={handleGoogleSignIn} className="mt-10 w-full">
+        <CardContent>
+          <form action={handleGoogleSignIn}>
             <Button type="submit" size="lg" className="w-full">
-              <LockKeyhole className="h-4 w-4" aria-hidden="true" />
+              <LockKeyhole data-icon="inline-start" aria-hidden="true" />
               Continue with Google
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              <ArrowRight data-icon="inline-end" aria-hidden="true" />
             </Button>
           </form>
-        </div>
-      </section>
+        </CardContent>
+
+        <CardFooter>
+          <p className="text-sm text-muted-foreground">
+            One account, one personal word list, one credential center.
+          </p>
+        </CardFooter>
+      </Card>
     </main>
   );
 }
